@@ -112,35 +112,43 @@ double pureMonteCarlo2D(double a, double b, double c, double d, int N, double la
     return estimate;
 }
 
-double* pureMonteCarloFourierCoefs(double a, double b, int N, mt19937 & gen, int numCoefs) {
-    double* coefs = new double[numCoefs];
+double* pureMonteCarloFourierCoefs(double a, double b, int N, int numTrials, double wStep, int numW, mt19937 & gen) {
     double samples[N];
-    uniform_real_distribution<> dist(a, b);
-    for (int j = 0; j < N; j++) {
-        samples[j] = dist(gen);
-    }
-    sort(samples,samples+N);
+    uniform_real_distribution<> dist(a,b);
+    uniform_real_distribution<> dist2(0,2*M_PI);
 
-    for (int j = 0; j < N; j++) {
-        //samples[j] = dist(gen);
-        //cout << samples[j] << endl;
-    }
-
-    complex<double> temp(0,0);
-    for (int i = 0; i < numCoefs; i++) {
+    double* coefs = new double[numW];
+    for (int i = 0; i < numW; i++) {
         coefs[i] = 0;
-        temp = (0,0);
-        coefs[i] += (samples[0]) * real(exp(-2 * M_PI * i * samples[0] * complex<double>(0,1)));
-        for (int j = 1; j < N; j++) {
-            temp += exp(-2 * M_PI * i * samples[j] * complex<double>(0,1));
-            //cout << exp(-2 * M_PI * i * samples[j] * complex<double>(0,1)) << endl;
-            coefs[i] += (samples[j]-samples[j-1]) * real(exp(-2 * M_PI * i * samples[j] * complex<double>(0,1)));
-        }
-        cout << norm(temp)*norm(temp) << endl;
-        coefs[i] /= N;
-        //coefs[i] = real(exp(2 * M_PI * sqrt(-1)));
     }
-    //cout << real(exp(2 * M_PI * complex<double>(0,1))) << endl;
+    complex<double> temp(0,0);
+    double tempAngle;
+    for (int i = 0; i < numTrials; i++) {
+        for (int j = 0; j < N; j++) {
+            samples[j] = dist(gen);
+        }
+        /*for (int j = 0; j < N; j++) {
+            cout << samples[j] << " ";
+        }
+        cout << endl;*/
+        for (int w = 0; w < numW; w++) {
+            temp = (0,0);
+            for (int j = 0; j < N; j++) {
+                temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
+                //tempAngle = dist2(gen);
+                //temp += (cos(tempAngle),sin(tempAngle));
+                if (w == 2) {
+                    //cout << samples[j] << " " << norm(exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1))) << endl;
+                }
+                //cout << temp << endl;
+            }
+            if (w == 1) {
+                //cout << (norm(temp) / (N * N)) << endl;
+            }
+            coefs[w] += norm(temp) / (N * N * numTrials);
+            //cout << "This coefficient: " << coefs[w] << endl;
+        }
+    }
     return coefs;
 }
 
@@ -154,6 +162,38 @@ double uniform(double a, double b, int N, double lambda, function<double (double
     estimate /= N;
     estimate *= (b-a);
     return estimate;
+}
+
+double* uniformFourierCoefs(double a, double b, int N, int numTrials, double wStep, int numW, mt19937 & gen) {
+    double samples[N];
+    uniform_real_distribution<> dist(0, 1);
+    double strataSize = (b-a)/N;
+
+    double* coefs = new double[numW];
+    for (int i = 0; i < numW; i++) {
+        coefs[i] = 0;
+    }
+    complex<double> temp(0,0);
+    for (int i = 0; i < numTrials; i++) {
+        for (int j = 0; j < N; j++) {
+            samples[j] = a + (j + 0.5) * strataSize;
+        }
+        /*for (int j = 0; j < N; j++) {
+            cout << samples[j] << " ";
+        }
+        cout << endl;*/
+        for (int w = 0; w < numW; w++) {
+            temp = (0,0);
+            for (int j = 0; j < N; j++) {
+                temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
+                //cout << exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1)) << endl;
+            }
+            //cout << temp << endl;
+            coefs[w] += norm(temp) / (N * N * numTrials);
+            //cout << "This coefficient: " << coefs[w] << endl;
+        }
+    }
+    return coefs;
 }
 
 double uniform2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F) {
@@ -196,19 +236,29 @@ double* stratifiedFourierCoefs(double a, double b, int N, int numTrials, double 
     double samples[N];
     uniform_real_distribution<> dist(0, 1);
     double strataSize = (b-a)/N;
-    for (int j = 0; j < N; j++) {
-        samples[j] = a + (j + dist(gen)) * strataSize;
-    }
 
     double* coefs = new double[numW];
+    for (int i = 0; i < numW; i++) {
+        coefs[i] = 0;
+    }
     complex<double> temp(0,0);
     for (int i = 0; i < numTrials; i++) {
+        for (int j = 0; j < N; j++) {
+            samples[j] = a + (j + dist(gen)) * strataSize;
+        }
+        /*for (int j = 0; j < N; j++) {
+            cout << samples[j] << " ";
+        }
+        cout << endl;*/
         for (int w = 0; w < numW; w++) {
             temp = (0,0);
             for (int j = 0; j < N; j++) {
-                temp += exp(-2 * M_PI * wStep * j * samples[j] * complex<double>(0,1));
+                temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
+                //cout << temp << endl;
             }
-            coefs[w] += norm(temp) * norm(temp) / (N * N * numTrials);
+            //cout << coefs[w] << endl;
+            coefs[w] += norm(temp) / (N * N * numTrials);
+            //cout << "This coefficient: " << coefs[w] << endl;
         }
     }
     return coefs;
@@ -237,6 +287,35 @@ double stratified2D(double a, double b, double c, double d, int N, double lambda
     return estimate;
 }
 
+double* stratified2DFourierCoefs(double a, double b, double c, double d, int N, int numTrials, double wStep, int numW, mt19937 & gen) {
+    double sampleXs[N];
+    double sampleYs[N];
+    uniform_real_distribution<> dist(0, 1);
+    double strataSizeX = (b-a)/N;
+    double strataSizeY = (d-c)/N;
+
+    double* coefs = new double[numW];
+    complex<double> temp(0,0);
+    for (int i = 0; i < numTrials; i++) {
+        for (int j = 0; j < N; j++) {
+            sampleXs[j] = a + (j + dist(gen)) * strataSizeX;
+            sampleYs[j] = c + (j + dist(gen)) * strataSizeY;
+        }
+        for (int w = 0; w < numW; w++) {
+            temp = (0,0);
+            for (int j = 0; j < N; j++) {
+                /*for (double k = 0; k < 2 * M_PI; k += M_PI/6) {
+                    temp += exp(-2 * M_PI * wStep * w * (cos(k) * sampleXs[j] + sin(k) * sampleYs[j]) * (1/12) * complex<double>(0,1));
+                }*/
+                temp += exp(-2 * M_PI * wStep * w * (sampleXs[j]/sqrt(2) + sampleYs[j]/sqrt(2)) * complex<double>(0,1));
+            }
+            //cout << temp << endl;
+            coefs[w] += norm(temp) * norm(temp) / (N * N * numTrials);
+        }
+    }
+    return coefs;
+}
+
 int main(int argc, char** argv) {
     string fileName = argv[1];
     random_device r;
@@ -253,6 +332,7 @@ int main(int argc, char** argv) {
     double avgError = 0;
     double avgError2 = 0;
     double temp;
+    /*
     cout << "1D:" << endl;
     cout << "Quadratic:\n";
     //cout << "Ground truth:\n";
@@ -512,15 +592,15 @@ int main(int argc, char** argv) {
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
     cout << "Average percent error: " << (avgError/numTrials) << "%\n";
-    cout << endl;
+    cout << endl;*/
 
     //Fourier analysis (Not working yet)
-    /*double* testCoefs = pureMonteCarloFourierCoefs(0,1,9,gen,15);
-    for (int i = 0; i < 15; i++) {
-        cout << (testCoefs[i]*testCoefs[i]) << " ";
+    double* testCoefs = stratifiedFourierCoefs(0,1,numSamples,100000,1,40,gen);
+    for (int i = 0; i < 40; i++) {
+        cout << (i) <<  "," << testCoefs[i]*numSamples << "\n";
     }
     cout << endl;
-    delete testCoefs;*/
+    delete testCoefs;
 
     //Make image file
     ofstream ofs(fileName, ios::out | ios::binary);
