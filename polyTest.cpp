@@ -588,7 +588,7 @@ int main(int argc, char** argv) {
     mt19937 gen(r());
     int imgWidth = 500;
     int imgHeight = 500;
-    int numSamples = 16;
+    int numSamples = 20;
     int numTrials = 100;
     int numLambdas = 250;
     unsigned char image[imgHeight*imgWidth];
@@ -598,7 +598,7 @@ int main(int argc, char** argv) {
     double avgError = 0;
     double avgError2 = 0;
     double temp;
-    /*
+    
     cout << "1D:" << endl;
     cout << "Quadratic:\n";
     //cout << "Ground truth:\n";
@@ -615,37 +615,89 @@ int main(int argc, char** argv) {
             temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
             //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
-            avgError2 += abs(temp-groundTruthQuad(j/numLambdas));
+            //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
+            avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    /*for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
+                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+                avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
+                //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
+                avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
+            }
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }*/
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
+    /*for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
+                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+                avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
+                //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
+                avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
+            }
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }*/
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
             //image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
-            avgError2 += abs(temp-groundTruthQuad(j/numLambdas));
+            avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
+    /*for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
+                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+                avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
+                //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
+                avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
+            }
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }*/
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
             //image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
-            avgError2 += abs(temp-groundTruthQuad(j/numLambdas));
+            avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     cout << endl;
 
     cout << "Step:\n";
@@ -662,11 +714,27 @@ int main(int argc, char** argv) {
             temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
             image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
-            avgError2 += abs(temp-groundTruthStep(j/numLambdas));
+            avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    /*for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
+                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+                avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
+                avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
+            }
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }*/
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
@@ -676,11 +744,11 @@ int main(int argc, char** argv) {
             //cout << temp << " vs " << groundTruthStep(j/numLambdas) << endl;
             image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
-            avgError2 += abs(temp-groundTruthStep(j/numLambdas));
+            avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
@@ -689,14 +757,14 @@ int main(int argc, char** argv) {
             temp = stratified(0,1,numSamples,j/numLambdas,sampleStep,gen);
             image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
-            avgError2 += abs(temp-groundTruthStep(j/numLambdas));
+            avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
     }
-    cout << "Average error: " << (avgError2/(numTrials*numLambdas)) << endl;
-    cout << "Average percent error: " << (avgError/(numTrials*numLambdas)) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
+    cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     cout << endl;
 
-
+    
     cout << "--------------------------" << endl;
     cout << endl;
     cout << "2D:" << endl;
@@ -704,52 +772,118 @@ int main(int argc, char** argv) {
     cout << "Monte Carlo:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
-        avgError2 += abs(temp-groundTruthDisk(0));
+        avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
     }
-    cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/numTrials) << endl;
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,disk,gen);
+            avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+            avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,disk);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+        avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
     }
-    cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "RMSE: " << sqrt(avgError2/numTrials) << endl;
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = uniform2D(0,1,0,1,numSamples,0,disk);
+            avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+            avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = stratified2D(0,1,0,1,numSamples,0,disk,gen);
+            avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+            avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = NRooks2D(0,1,0,1,numSamples,0,disk,gen);
+            avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+            avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k ++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,disk,gen);
+            avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
+            avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
+        }
+        //RMSE
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
+    }
     cout << endl;
 
     cout << "Triangle:\n";
@@ -759,50 +893,50 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,triangle,gen);
         avgError += abs(temp-groundTruthTriangle(0))/groundTruthTriangle(0);
-        avgError2 += abs(temp-groundTruthTriangle(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,triangle);
         avgError += abs(temp-groundTruthTriangle(0))/groundTruthTriangle(0);
-        avgError2 += abs(temp-groundTruthTriangle(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,triangle,gen);
         avgError += abs(temp-groundTruthTriangle(0))/groundTruthTriangle(0);
-        avgError2 += abs(temp-groundTruthTriangle(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,triangle,gen);
         avgError += abs(temp-groundTruthTriangle(0))/groundTruthTriangle(0);
-        avgError2 += abs(temp-groundTruthTriangle(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,triangle,gen);
         avgError += abs(temp-groundTruthTriangle(0))/groundTruthTriangle(0);
-        avgError2 += abs(temp-groundTruthTriangle(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << endl;
 
     cout << "Step:\n";
@@ -812,103 +946,153 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,step2D,gen);
         avgError += abs(temp-groundTruthStep2D(0))/groundTruthStep2D(0);
-        avgError2 += abs(temp-groundTruthStep2D(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,step2D);
         avgError += abs(temp-groundTruthStep2D(0))/groundTruthStep2D(0);
-        avgError2 += abs(temp-groundTruthStep2D(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
    cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,step2D,gen);
         avgError += abs(temp-groundTruthStep2D(0))/groundTruthStep2D(0);
-        avgError2 += abs(temp-groundTruthStep2D(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "NRooks:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,step2D,gen);
         avgError += abs(temp-groundTruthStep2D(0))/groundTruthStep2D(0);
-        avgError2 += abs(temp-groundTruthStep2D(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,step2D,gen);
         avgError += abs(temp-groundTruthStep2D(0))/groundTruthStep2D(0);
-        avgError2 += abs(temp-groundTruthStep2D(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << endl;
 
     cout << "Gaussian:\n";
     cout << "Monte Carlo:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
-        avgError2 += abs(temp-groundTruthGaussian(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,gaussian,gen);
+            avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
+        }
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+    }
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,gaussian);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
-        avgError2 += abs(temp-groundTruthGaussian(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = uniform2D(0,1,0,1,numSamples,0,gaussian);
+            avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
+        }
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+    }
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
-        avgError2 += abs(temp-groundTruthGaussian(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = stratified2D(0,1,0,1,numSamples,0,gaussian,gen);
+            avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
+        }
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+    }
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
-        avgError2 += abs(temp-groundTruthGaussian(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = NRooks2D(0,1,0,1,numSamples,0,gaussian,gen);
+            avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
+        }
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+    }
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
-    for (int i = 0; i < numTrials; i++) {
+    /*for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
-        avgError2 += abs(temp-groundTruthGaussian(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    for (int k = 5; k <= 150; k++) {
+        avgError = 0;
+        avgError2 = 0;
+        numSamples = k;
+        for (int i = 0; i < numTrials; i++) {
+            temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,gaussian,gen);
+            avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
+        }
+        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+    }
     cout << endl;
 
     cout << "Bilinear:\n";
@@ -918,51 +1102,51 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,bilinear,gen);
         avgError += abs(temp-groundTruthBilinear(0))/groundTruthBilinear(0);
-        avgError2 += abs(temp-groundTruthBilinear(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,bilinear);
         avgError += abs(temp-groundTruthBilinear(0))/groundTruthBilinear(0);
-        avgError2 += abs(temp-groundTruthBilinear(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,bilinear,gen);
         avgError += abs(temp-groundTruthBilinear(0))/groundTruthBilinear(0);
-        avgError2 += abs(temp-groundTruthBilinear(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,bilinear,gen);
         avgError += abs(temp-groundTruthBilinear(0))/groundTruthBilinear(0);
-        avgError2 += abs(temp-groundTruthBilinear(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     cout << "Multi-jitter:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,bilinear,gen);
         avgError += abs(temp-groundTruthBilinear(0))/groundTruthBilinear(0);
-        avgError2 += abs(temp-groundTruthBilinear(0));
+        avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (avgError/numTrials) << "%\n";
-    cout << endl;*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
+    cout << endl;
 
     //Fourier analysis
     /*double* testCoefs = stratifiedFourierCoefs(0,1,numSamples,100000,1,40,gen);
@@ -973,7 +1157,7 @@ int main(int argc, char** argv) {
     delete testCoefs;*/
 
     //Power spectra
-    double** testSpectra = multiJitter2DFourierCoefs(0,1,0,1,15,1000,1,60,gen);
+    /*double** testSpectra = multiJitter2DFourierCoefs(0,1,0,1,15,1000,1,60,gen);
     //cout << "Hi" << endl;
     for (int i = 0; i < 121; i++) {
         //cout << "Hello???" << endl;
@@ -989,7 +1173,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 33; i++) {
         delete testSpectra[i];
     }
-    delete testSpectra;
+    delete testSpectra;*/
 
     //Make image file
     ofstream ofs(fileName, ios::out | ios::binary);

@@ -5,6 +5,9 @@
         "iosfwd": "cpp",
         "algorithm": "cpp",
         "vector": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "cstdlib": "cpp",
+        "ostream": "cpp",
+        "cmath": "cpp"
     }
 }
