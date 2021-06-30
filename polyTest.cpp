@@ -127,24 +127,12 @@ double* pureMonteCarloFourierCoefs(double a, double b, int N, int numTrials, dou
         for (int j = 0; j < N; j++) {
             samples[j] = dist(gen);
         }
-        /*for (int j = 0; j < N; j++) {
-            cout << samples[j] << " ";
-        }
-        cout << endl;*/
         for (int w = 0; w < numW; w++) {
             temp = (0,0);
             for (int j = 0; j < N; j++) {
                 temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
-                if (w == 2) {
-                    //cout << samples[j] << " " << norm(exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1))) << endl;
-                }
-                //cout << temp << endl;
-            }
-            if (w == 1) {
-                //cout << (norm(temp) / (N * N)) << endl;
             }
             coefs[w] += norm(temp) / (N * N * numTrials);
-            //cout << "This coefficient: " << coefs[w] << endl;
         }
     }
     return coefs;
@@ -177,12 +165,8 @@ double** pureMonteCarlo2DFourierCoefs(double a, double b, double c, double d, in
                 for (int j = 0; j < N; j++) {
                     temp += exp(-2 * M_PI * wStep * (wX * sampleXs[j] + wY * sampleYs[j]) * complex<double>(0,1));
                 }
-               // cout << temp << endl;
-                //cout << (-wY + numW) << " " << (wX + numW) << endl;
                 spectra[-wY + numW][wX + numW] += norm(temp) / (N * N * numTrials);
-                //cout << "point done" << endl;
             }
-            //cout << "strip done" << endl;
         }
     }
     return spectra;
@@ -214,19 +198,12 @@ double* uniformFourierCoefs(double a, double b, int N, int numTrials, double wSt
         for (int j = 0; j < N; j++) {
             samples[j] = a + (j + 0.5) * strataSize;
         }
-        /*for (int j = 0; j < N; j++) {
-            cout << samples[j] << " ";
-        }
-        cout << endl;*/
         for (int w = 0; w < numW; w++) {
             temp = (0,0);
             for (int j = 0; j < N; j++) {
                 temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
-                //cout << exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1)) << endl;
             }
-            //cout << temp << endl;
             coefs[w] += norm(temp) / (N * N * numTrials);
-            //cout << "This coefficient: " << coefs[w] << endl;
         }
     }
     return coefs;
@@ -318,19 +295,12 @@ double* stratifiedFourierCoefs(double a, double b, int N, int numTrials, double 
         for (int j = 0; j < N; j++) {
             samples[j] = a + (j + dist(gen)) * strataSize;
         }
-        /*for (int j = 0; j < N; j++) {
-            cout << samples[j] << " ";
-        }
-        cout << endl;*/
         for (int w = 0; w < numW; w++) {
             temp = (0,0);
             for (int j = 0; j < N; j++) {
                 temp += exp(-2 * M_PI * wStep * w * samples[j] * complex<double>(0,1));
-                //cout << temp << endl;
             }
-            //cout << coefs[w] << endl;
             coefs[w] += norm(temp) / (N * N * numTrials);
-            //cout << "This coefficient: " << coefs[w] << endl;
         }
     }
     return coefs;
@@ -349,7 +319,6 @@ double stratified2D(double a, double b, double c, double d, int N, double lambda
         for (int j = 0; j < numRows; j++) {
             tempX = a + (i + dist(gen)) * strataSizeX;
             tempY = c + (j + dist(gen)) * strataSizeY;
-            //cout << tempX << ", " << tempY << endl;
             estimate += F(tempX,tempY,lambda);
         }
     }
@@ -382,23 +351,14 @@ double** stratified2DFourierCoefs(double a, double b, double c, double d, int N,
                 sampleYs[k * numRows + j] = c + (k + dist(gen)) * strataSizeY;
             }
         }
-        /*if (i == 0) {
-            for (int k = 0; k < numRows*numRows; k++) {
-                cout << sampleXs[k] << ", " << sampleYs[k] << endl;
-            }
-        }*/
         for (int wX = -numW; wX <= numW; wX++) {
             for (int wY = -numW; wY <= numW; wY++) {
                 temp = (0,0);
                 for (int j = 0; j < numRows * numRows; j++) {
                     temp += exp(-2 * M_PI * wStep * (wX * sampleXs[j] + wY * sampleYs[j]) * complex<double>(0,1));
                 }
-               // cout << temp << endl;
-                //cout << (-wY + numW) << " " << (wX + numW) << endl;
                 spectra[-wY + numW][wX + numW] += norm(temp) / (numRows * numRows * numTrials);//extra gone as normalization
-                //cout << "point done" << endl;
             }
-            //cout << "strip done" << endl;
         }
     }
     return spectra;
@@ -455,23 +415,14 @@ double** NRooks2DFourierCoefs(double a, double b, double c, double d, int N, int
         random_shuffle(sampleXs.begin(),sampleXs.end());//Shuffle the sample x coordinates
         random_shuffle(sampleYs.begin(),sampleYs.end());//Shuffle the sample y coordinates
 
-        /*if (i == 0) {
-            for (int k = 0; k < numRows*numRows; k++) {
-                cout << sampleXs[k] << ", " << sampleYs[k] << endl;
-            }
-        }*/
         for (int wX = -numW; wX <= numW; wX++) {
             for (int wY = -numW; wY <= numW; wY++) {
                 temp = (0,0);
                 for (int j = 0; j < N; j++) {
                     temp += exp(-2 * M_PI * wStep * (wX * sampleXs[j] + wY * sampleYs[j]) * complex<double>(0,1));
                 }
-               // cout << temp << endl;
-                //cout << (-wY + numW) << " " << (wX + numW) << endl;
                 spectra[-wY + numW][wX + numW] += norm(temp) / (N * numTrials);//extra gone as normalization
-                //cout << "point done" << endl;
             }
-            //cout << "strip done" << endl;
         }
     }
     return spectra;
@@ -506,13 +457,6 @@ double multiJitter2D(double a, double b, double c, double d, int N, double lambd
         random_shuffle(sampleXs[i].begin(),sampleXs[i].end());//Shuffle the sample x coordinates
         random_shuffle(sampleYs[i].begin(),sampleYs[i].end());//Shuffle the sample y coordinates
     }
-
-    /*cout << "Start: " << endl;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            cout << sampleXs[i][j] << ", " << sampleYs[j][i] << endl;
-        }
-    }*/
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -571,15 +515,111 @@ double** multiJitter2DFourierCoefs(double a, double b, double c, double d, int N
                         temp += exp(-2 * M_PI * wStep * (wX * sampleXs[j][k] + wY * sampleYs[k][j]) * complex<double>(0,1));
                     }
                 }
-               // cout << temp << endl;
-                //cout << (-wY + numW) << " " << (wX + numW) << endl;
                 spectra[-wY + numW][wX + numW] += norm(temp) / (N * N * numTrials);//extra gone as normalization
-                //cout << "point done" << endl;
             }
-            //cout << "strip done" << endl;
         }
     }
     return spectra;
+}
+
+double radicalInverse(int base, int a) {
+    //Could be optimized based on https://www.pbr-book.org/3ed-2018/Sampling_and_Reconstruction/The_Halton_Sampler, but currently isn't
+    int temp;
+    double result = 0;
+    double multBy = 1/base;
+    while (a != 0) {
+        temp = a % base;
+        result += temp * multBy;
+        cout << (temp * multBy) << endl;
+        multBy /= base;
+        a /= base;
+    }
+    return result;
+}
+
+/**
+ * Creates intensity strip images based on estimating the integral of a particular function over the interval [0, 1]
+ * The function will be (f(x) = 600 * (x-lambda)^2 + 2) if testFunc is 0 and (f(x) = 150 * (x > lambda)) if testFunc is 1
+ * Lambda will range from 0 to 1, with numLambdas intermediate values tested, each corresponding to a particular column of the strips
+ * numTrials trials will be done for each value of lambda, corresponding to the rows of the strips
+ * A strip will be generated for ground truth, pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
+ * and stratified/jittered (sample points at a random location within each strata)
+ */
+void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgWidth, int imgHeight, int testFunc, mt19937 & gen, string fileName) {
+    unsigned char image[imgHeight*imgWidth];
+    for (int i = 0; i < imgHeight*imgWidth; i++) {
+        image[i] = 255;
+    }
+    double temp;
+    cout << "1D:" << endl;
+    if (testFunc == 0) {
+        cout << "Quadratic:\n";
+        cout << "Ground truth:\n";
+        for (int i = 0; i < 100; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthQuad(j/numLambdas);
+            }
+        }
+        cout << "Monte Carlo:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
+                image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << "Uniform:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
+                image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << "Stratified:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
+                image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << endl;
+    } else if (testFunc == 1) {
+        cout << "Step:\n";
+        for (int i = 0; i < 100; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthStep(j/numLambdas);
+            }
+        }
+        cout << "Monte Carlo:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
+                image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << "Uniform:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = uniform(0,1,numSamples,j/numLambdas,sampleStep);
+                image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << "Stratified:\n";
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                temp = stratified(0,1,numSamples,j/numLambdas,sampleStep,gen);
+                image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
+            }
+        }
+        cout << endl;
+    }
+
+    //Make image file
+    ofstream ofs(fileName, ios::out | ios::binary);
+    ofs << "P6\n" << imgWidth << " " << imgHeight << "\n255\n"; 
+    for (int i = 0; i < imgWidth * imgHeight; ++i) { 
+        ofs << image[i] << image[i] << image[i];
+    } 
+    ofs.close();
 }
 
 int main(int argc, char** argv) {
@@ -591,29 +631,19 @@ int main(int argc, char** argv) {
     int numSamples = 20;
     int numTrials = 100;
     int numLambdas = 250;
-    unsigned char image[imgHeight*imgWidth];
-    for (int i = 0; i < imgHeight*imgWidth; i++) {
-        image[i] = 0;
-    }
     double avgError = 0;
     double avgError2 = 0;
     double temp;
+
+    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,0,gen,fileName);//quad
+    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,1,gen,fileName);//step
     
     cout << "1D:" << endl;
     cout << "Quadratic:\n";
-    //cout << "Ground truth:\n";
-    for (int i = 0; i < 100; i++) {
-        for (double j = 0; j < numLambdas; j++) {
-            //image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthQuad(j/numLambdas);
-            //cout << groundTruth(j) << " ";
-        }
-        //cout << endl;
-    }
     cout << "Monte Carlo:\n";
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-            //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
             //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
             avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
@@ -628,7 +658,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
                 avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
                 //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
                 avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
@@ -648,7 +677,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
-                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
                 avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
                 //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
                 avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
@@ -661,7 +689,6 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
-            //image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
             avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
         }
@@ -678,7 +705,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
                 avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
                 //cout << abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas) << endl;
                 avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
@@ -691,7 +717,6 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-            //image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthQuad(j/numLambdas))/groundTruthQuad(j/numLambdas);
             avgError2 += (temp-groundTruthQuad(j/numLambdas)) * (temp-groundTruthQuad(j/numLambdas));
         }
@@ -701,18 +726,12 @@ int main(int argc, char** argv) {
     cout << endl;
 
     cout << "Step:\n";
-    for (int i = 0; i < 100; i++) {
-        for (double j = 0; j < numLambdas; j++) {
-            image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthStep(j/numLambdas);
-        }
-    }
     cout << "Monte Carlo:\n";
     avgError = 0;
     avgError2 = 0;
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
-            image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
             avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
@@ -726,7 +745,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
-                //image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
                 avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
                 avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
             }
@@ -742,7 +760,6 @@ int main(int argc, char** argv) {
         for (double j = 0; j < numLambdas; j++) {
             temp = uniform(0,1,numSamples,j/numLambdas,sampleStep);
             //cout << temp << " vs " << groundTruthStep(j/numLambdas) << endl;
-            image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
             avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
@@ -755,7 +772,6 @@ int main(int argc, char** argv) {
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = stratified(0,1,numSamples,j/numLambdas,sampleStep,gen);
-            image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
             avgError += abs(temp-groundTruthStep(j/numLambdas))/groundTruthStep(j/numLambdas);
             avgError2 += (temp-groundTruthStep(j/numLambdas)) * (temp-groundTruthStep(j/numLambdas));
         }
@@ -1175,11 +1191,5 @@ int main(int argc, char** argv) {
     }
     delete testSpectra;*/
 
-    //Make image file
-    ofstream ofs(fileName, ios::out | ios::binary);
-    ofs << "P6\n" << imgWidth << " " << imgHeight << "\n255\n"; 
-    for (int i = 0; i < imgWidth * imgHeight; ++i) { 
-        ofs << image[i] << image[i] << image[i];
-    } 
-    ofs.close();
+    
 }
