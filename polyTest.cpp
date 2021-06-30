@@ -26,54 +26,24 @@ double groundTruthStep(double lambda) {
     return 150 * (1-lambda);
 }
 
-double disk(double x, double y, double lambda) {
-    //lambda isn't used
+double disk(double x, double y) {
     return (double) (x*x + y*y < 2/M_PI);
 }
 
-double groundTruthDisk(double lambda) {
-    //lambda isn't used
-    return 0.5;
-}
-
-double triangle(double x, double y, double lambda) {
-    //lambda isn't used
+double triangle(double x, double y) {
     return (double) (y > x);
 }
 
-double groundTruthTriangle(double lambda) {
-    //lambda isn't used
-    return 0.5;
-}
-
-double step2D(double x, double y, double lambda) {
-    //lambda isn't used
+double step2D(double x, double y) {
     return (double) (x < 1/M_PI);
 }
 
-double groundTruthStep2D(double lambda) {
-    //lambda isn't used
-    return 1/M_PI;
-}
-
-double gaussian(double x, double y, double lambda) {
-    //lambda isn't used
+double gaussian(double x, double y) {
     return exp(-x*x - y*y);
 }
 
-double groundTruthGaussian(double lambda) {
-    //lambda isn't used
-    return 0.55774628535;
-}
-
-double bilinear(double x, double y, double lambda) {
-    //lambda isn't used
+double bilinear(double x, double y) {
     return x*y;
-}
-
-double groundTruthBilinear(double lambda) {
-    //lambda isn't used
-    return 0.25;
 }
 
 double pureMonteCarlo(double a, double b, int N, double lambda, function<double (double,double)> F, mt19937 & gen) {
@@ -93,7 +63,7 @@ double pureMonteCarlo(double a, double b, int N, double lambda, function<double 
  * Estimates the integral of F(x,y,lambda) over the interval a <= x <= b, c <= y <= d
  * Does this by placing N random points in the interval
  */
-double pureMonteCarlo2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F, mt19937 & gen) {
+double pureMonteCarlo2D(double a, double b, double c, double d, int N, function<double (double,double)> F, mt19937 & gen) {
     //cout << N << endl;
     double estimate = 0;
     uniform_real_distribution<> distX(a, b);
@@ -104,7 +74,7 @@ double pureMonteCarlo2D(double a, double b, double c, double d, int N, double la
     for (int i = 0; i < N; i++) {
         tempX = distX(gen);
         tempY = distY(gen);
-        temp = F(distX(gen),distY(gen),lambda);
+        temp = F(distX(gen),distY(gen));
         estimate += temp;
     }
     estimate /= N;
@@ -209,7 +179,7 @@ double* uniformFourierCoefs(double a, double b, int N, int numTrials, double wSt
     return coefs;
 }
 
-double uniform2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F) {
+double uniform2D(double a, double b, double c, double d, int N, function<double (double,double)> F) {
     //will have less than N points if N isn't a perfect square
     double estimate = 0;
     int numRows = (int) sqrt(N);
@@ -222,7 +192,7 @@ double uniform2D(double a, double b, double c, double d, int N, double lambda, f
             tempX = a + strataSizeX/2 + i * strataSizeX;
             tempY = c + strataSizeY/2 + j * strataSizeY;
             //cout << tempX << ", " << tempY << endl;
-            estimate += F(tempX,tempY,lambda);
+            estimate += F(tempX,tempY);
         }
     }
     estimate /= numRows * numRows;
@@ -306,7 +276,7 @@ double* stratifiedFourierCoefs(double a, double b, int N, int numTrials, double 
     return coefs;
 }
 
-double stratified2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F, mt19937 & gen) {
+double stratified2D(double a, double b, double c, double d, int N, function<double (double,double)> F, mt19937 & gen) {
     //will have less than N points if N isn't a perfect square
     uniform_real_distribution<> dist(0,1);
     double estimate = 0;
@@ -319,7 +289,7 @@ double stratified2D(double a, double b, double c, double d, int N, double lambda
         for (int j = 0; j < numRows; j++) {
             tempX = a + (i + dist(gen)) * strataSizeX;
             tempY = c + (j + dist(gen)) * strataSizeY;
-            estimate += F(tempX,tempY,lambda);
+            estimate += F(tempX,tempY);
         }
     }
     estimate /= numRows * numRows;
@@ -364,7 +334,7 @@ double** stratified2DFourierCoefs(double a, double b, double c, double d, int N,
     return spectra;
 }
 
-double NRooks2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F, mt19937 & gen) {
+double NRooks2D(double a, double b, double c, double d, int N, function<double (double,double)> F, mt19937 & gen) {
     //somewhat based on pseudo code from https://cs.dartmouth.edu/~wjarosz/publications/subr16fourier.html
     uniform_real_distribution<> dist(0,1);
     double estimate = 0;
@@ -382,7 +352,7 @@ double NRooks2D(double a, double b, double c, double d, int N, double lambda, fu
     random_shuffle(sampleYs.begin(),sampleYs.end());//Shuffle the sample y coordinates
 
     for (int i = 0; i < N; i++) {
-        estimate += F(sampleXs[i],sampleYs[i],lambda);
+        estimate += F(sampleXs[i],sampleYs[i]);
     }
     estimate /= N;
     estimate *= (b-a);
@@ -428,7 +398,7 @@ double** NRooks2DFourierCoefs(double a, double b, double c, double d, int N, int
     return spectra;
 }
 
-double multiJitter2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F, mt19937 & gen) {
+double multiJitter2D(double a, double b, double c, double d, int N, function<double (double,double)> F, mt19937 & gen) {
     //somewhat based on pseudo code from https://cs.dartmouth.edu/~wjarosz/publications/subr16fourier.html
     //Has N*N samples, not N samples
     uniform_real_distribution<> dist(0,1);
@@ -460,7 +430,7 @@ double multiJitter2D(double a, double b, double c, double d, int N, double lambd
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            estimate += F(sampleXs[i][j],sampleYs[j][i],lambda);
+            estimate += F(sampleXs[i][j],sampleYs[j][i]);
         }
     }
     estimate /= N*N;
@@ -538,79 +508,45 @@ double radicalInverse(int base, int a) {
 }
 
 /**
- * Creates intensity strip images based on estimating the integral of a particular function over the interval [0, 1]
- * The function will be (f(x) = 600 * (x-lambda)^2 + 2) if testFunc is 0 and (f(x) = 150 * (x > lambda)) if testFunc is 1
+ * Creates intensity strip images based on estimating the integral of a particular 1D function over the interval [0, 1]
+ * testFunc is the function to approximate the integral of, and groundTruthFunc returns the correct value of the integral for a particular lambda
  * Lambda will range from 0 to 1, with numLambdas intermediate values tested, each corresponding to a particular column of the strips
  * numTrials trials will be done for each value of lambda, corresponding to the rows of the strips
  * A strip will be generated for ground truth, pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
  * and stratified/jittered (sample points at a random location within each strata)
  */
-void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgWidth, int imgHeight, int testFunc, mt19937 & gen, string fileName) {
+void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgWidth, int imgHeight, function<double (double,double)> testFunc, function<double (double)> groundTruthFunc, mt19937 & gen, string fileName) {
     unsigned char image[imgHeight*imgWidth];
     for (int i = 0; i < imgHeight*imgWidth; i++) {
         image[i] = 255;
     }
     double temp;
-    cout << "1D:" << endl;
-    if (testFunc == 0) {
-        cout << "Quadratic:\n";
-        cout << "Ground truth:\n";
-        for (int i = 0; i < 100; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthQuad(j/numLambdas);
-            }
+    //Ground Truth
+    for (int i = 0; i < 100; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthFunc(j/numLambdas);
         }
-        cout << "Monte Carlo:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-                image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
-            }
+    }
+    //Monte Carlo
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
         }
-        cout << "Uniform:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
-                image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
-            }
+    }
+    //Uniform
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = uniform(0,1,numSamples,j/numLambdas,testFunc);
+            image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
         }
-        cout << "Stratified:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
-                image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
-            }
+    }
+    //Stratified
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = stratified(0,1,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
         }
-        cout << endl;
-    } else if (testFunc == 1) {
-        cout << "Step:\n";
-        for (int i = 0; i < 100; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthStep(j/numLambdas);
-            }
-        }
-        cout << "Monte Carlo:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,sampleStep,gen);
-                image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
-            }
-        }
-        cout << "Uniform:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = uniform(0,1,numSamples,j/numLambdas,sampleStep);
-                image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
-            }
-        }
-        cout << "Stratified:\n";
-        for (int i = 0; i < numTrials; i++) {
-            for (double j = 0; j < numLambdas; j++) {
-                temp = stratified(0,1,numSamples,j/numLambdas,sampleStep,gen);
-                image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
-            }
-        }
-        cout << endl;
     }
 
     //Make image file
@@ -622,22 +558,162 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
     ofs.close();
 }
 
+/**
+ * Prints the RMSE from estimating the integral of a particular 1D function over the interval [0, 1]
+ * testFunc is the function to approximate the integral of, and groundTruthFunc returns the correct value of the integral for a particular lambda
+ * Lambda will range from 0 to 1, with numLambdas intermediate values tested
+ * numTrials trials will be done for each value of lambda
+ * RMSE will be calculated for pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
+ * and stratified/jittered (sample points at a random location within each strata)
+ */
+void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double (double,double)> testFunc, function<double (double)> groundTruthFunc, mt19937 & gen) {
+    double avgError = 0;
+    double temp;
+    cout << "Monte Carlo:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = pureMonteCarlo(0,1,numSamples,j/numLambdas,testFunc,gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Uniform:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = uniform(0,1,numSamples,j/numLambdas,testFunc);
+            avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Stratified:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = stratified(0,1,numSamples,j/numLambdas,testFunc,gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+}
+
+/**
+ * Prints the RMSE from estimating the integral of a particular 2D function over the interval x in [0, 1], y in [0, 1]
+ * testFunc is the function to approximate the integral of, and groundTruth is the correct value for the integral
+ * numTrials trials will be done for each value of lambda
+ * RMSE will be calculated for pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
+ * and stratified/jittered (sample points at a random location within each strata)
+ */
+void printRMSE2D(int numSamples, int numTrials, function<double (double,double)> testFunc, double groundTruth, mt19937 & gen) {
+    double avgError = 0;
+    double temp;
+    cout << "Monte Carlo:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = pureMonteCarlo2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+    avgError = 0;
+    cout << "Uniform:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = uniform2D(0,1,0,1,numSamples,testFunc);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+    avgError = 0;
+    cout << "Stratified:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = stratified2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+    avgError = 0;
+    cout << "N-Rooks:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = NRooks2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+    avgError = 0;
+    cout << "Multi-Jitter:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),testFunc,gen);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+}
+
+/**
+ * Prints the average error (not RMSE) from estimating the integral of a particular 2D function over the interval x in [0, 1], y in [0, 1]
+ * testFunc is the function to approximate the integral of, and groundTruth is the correct value for the integral
+ * numTrials trials will be done for each value of lambda
+ * Error will be calculated for pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
+ * and stratified/jittered (sample points at a random location within each strata)
+ */
+void printError2D(int numSamples, int numTrials, function<double (double,double)> testFunc, double groundTruth, mt19937 & gen) {
+    //Mostly to recreate https://www.semanticscholar.org/paper/Progressive-Multi-Jittered-Sample-Sequences-%3A-Christensen-Kensler/c19a94e814c8bd56a12ee108daacd9c243c2b7ef/figure/1
+    double avgError = 0;
+    double temp;
+    cout << "Monte Carlo:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = pureMonteCarlo2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+    avgError = 0;
+    cout << "Uniform:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = uniform2D(0,1,0,1,numSamples,testFunc);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+    avgError = 0;
+    cout << "Stratified:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = stratified2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+    avgError = 0;
+    cout << "N-Rooks:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = NRooks2D(0,1,0,1,numSamples,testFunc,gen);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+    avgError = 0;
+    cout << "Multi-Jitter:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),testFunc,gen);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+}
+
 int main(int argc, char** argv) {
     string fileName = argv[1];
     random_device r;
     mt19937 gen(r());
     int imgWidth = 500;
     int imgHeight = 500;
-    int numSamples = 20;
-    int numTrials = 100;
+    int numSamples = 1024;
+    int numTrials = 10000;
     int numLambdas = 250;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
 
-    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,0,gen,fileName);//quad
-    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,1,gen,fileName);//step
+    const double groundTruthDisk = 0.5;
+    const double groundTruthTriangle = 0.5;
+    const double groundTruthStep2D = 1/M_PI;
+    const double groundTruthGaussian = 0.55774628535;
+    const double groundTruthBilinear = 0.25;
+
+    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,sampleQuad,groundTruthQuad,gen,fileName);
+    //printRMSE1D(numLambdas,numSamples,numTrials,sampleQuad,groundTruthQuad,gen);
+    //printRMSE2D(numSamples,numTrials,gaussian,groundTruthGaussian,gen);
     
+    /*
     cout << "1D:" << endl;
     cout << "Quadratic:\n";
     cout << "Monte Carlo:\n";
@@ -651,7 +727,7 @@ int main(int argc, char** argv) {
     }
     cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
     cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    /*for (int k = 5; k <= 150; k ++) {
+    for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
         numSamples = k;
@@ -666,11 +742,11 @@ int main(int argc, char** argv) {
         //RMSE
         cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    }*/
+    }
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int k = 5; k <= 150; k ++) {
+    for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
         numSamples = k;
@@ -685,7 +761,7 @@ int main(int argc, char** argv) {
         //RMSE
         cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    }*/
+    }
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = uniform(0,1,numSamples,j/numLambdas,sampleQuad);
@@ -698,7 +774,7 @@ int main(int argc, char** argv) {
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int k = 5; k <= 150; k ++) {
+    for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
         numSamples = k;
@@ -713,7 +789,7 @@ int main(int argc, char** argv) {
         //RMSE
         cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    }*/
+    }
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = stratified(0,1,numSamples,j/numLambdas,sampleQuad,gen);
@@ -738,7 +814,7 @@ int main(int argc, char** argv) {
     }
     cout << "RMSE: " << sqrt(avgError2/(numTrials*numLambdas)) << endl;
     cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    /*for (int k = 5; k <= 150; k ++) {
+    for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
         numSamples = k;
@@ -752,7 +828,7 @@ int main(int argc, char** argv) {
         //RMSE
         cout << k << "," << sqrt(avgError2/(numTrials*numLambdas)) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
-    }*/
+    }
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
@@ -788,13 +864,13 @@ int main(int argc, char** argv) {
     cout << "Monte Carlo:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
     }
     cout << "RMSE: " << sqrt(avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
@@ -805,19 +881,19 @@ int main(int argc, char** argv) {
             avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
         }
         //RMSE
-        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << k << "," << sqrt(avgError2/numTrials) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     }
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,disk);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
     }
     cout << "RMSE: " << sqrt(avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
@@ -828,19 +904,19 @@ int main(int argc, char** argv) {
             avgError2 += (temp-groundTruthDisk(0)) * (temp-groundTruthDisk(0));
         }
         //RMSE
-        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << k << "," << sqrt(avgError2/numTrials) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     }
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
@@ -851,19 +927,19 @@ int main(int argc, char** argv) {
             avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
         }
         //RMSE
-        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << k << "," << sqrt(avgError2/numTrials) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     }
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
@@ -874,19 +950,19 @@ int main(int argc, char** argv) {
             avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
         }
         //RMSE
-        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << k << "," << sqrt(avgError2/numTrials) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     }
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,disk,gen);
         avgError += abs(temp-groundTruthDisk(0))/groundTruthDisk(0);
         avgError2 += abs(temp-groundTruthDisk(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k ++) {
         avgError = 0;
         avgError2 = 0;
@@ -897,7 +973,7 @@ int main(int argc, char** argv) {
             avgError2 += abs(temp-groundTruthDisk(0)) * abs(temp-groundTruthDisk(0));
         }
         //RMSE
-        cout << k << "," << sqrt(avgError2/numTrials) << endl;
+        //cout << k << "," << sqrt(avgError2/numTrials) << endl;
         //cout << "Average percent error: " << (100*avgError/(numTrials*numLambdas)) << "%\n";
     }
     cout << endl;
@@ -1012,13 +1088,13 @@ int main(int argc, char** argv) {
     cout << "Monte Carlo:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = pureMonteCarlo2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
         avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k++) {
         avgError = 0;
         avgError2 = 0;
@@ -1032,13 +1108,13 @@ int main(int argc, char** argv) {
     cout << "Uniform:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = uniform2D(0,1,0,1,numSamples,0,gaussian);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
         avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k++) {
         avgError = 0;
         avgError2 = 0;
@@ -1052,13 +1128,13 @@ int main(int argc, char** argv) {
     cout << "Stratified:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = stratified2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
         avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k++) {
         avgError = 0;
         avgError2 = 0;
@@ -1072,13 +1148,13 @@ int main(int argc, char** argv) {
     cout << "N-Rooks:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = NRooks2D(0,1,0,1,numSamples,0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
         avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k++) {
         avgError = 0;
         avgError2 = 0;
@@ -1092,13 +1168,13 @@ int main(int argc, char** argv) {
     cout << "Multi-Jitter:\n";
     avgError = 0;
     avgError2 = 0;
-    /*for (int i = 0; i < numTrials; i++) {
+    for (int i = 0; i < numTrials; i++) {
         temp = multiJitter2D(0,1,0,1,(int) sqrt(numSamples),0,gaussian,gen);
         avgError += abs(temp-groundTruthGaussian(0))/groundTruthGaussian(0);
         avgError2 += (temp-groundTruthTriangle(0)) * (temp-groundTruthTriangle(0));
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
-    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";*/
+    cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
     for (int k = 5; k <= 150; k++) {
         avgError = 0;
         avgError2 = 0;
@@ -1162,7 +1238,7 @@ int main(int argc, char** argv) {
     }
     cout << "Average error: " << (avgError2/numTrials) << endl;
     cout << "Average percent error: " << (100*avgError/numTrials) << "%\n";
-    cout << endl;
+    cout << endl;*/
 
     //Fourier analysis
     /*double* testCoefs = stratifiedFourierCoefs(0,1,numSamples,100000,1,40,gen);
