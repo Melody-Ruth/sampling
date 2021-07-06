@@ -84,25 +84,24 @@ double** genHaltonSeq2D(int N, double a, double b, double c, double d, mt19937 &
     double** seqArr = new double*[N];
     for (int i = 0; i < N; i++) {
         seqArr[i] = new double[2];
-        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + b;
+        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + a;
         seqArr[i][1] = (d-c) * radicalInverse(primes[1], i+1) + c;
     }
     return seqArr;
 }
 
 double** genHaltonSeqRot2D(int N, double a, double b, double c, double d, mt19937 & gen) {
-    uniform_real_distribution<> dist1(0, b-a);
-    uniform_real_distribution<> dist2(0, d-c);
+    //uniform_real_distribution<> dist1(0, b-a);
+    //uniform_real_distribution<> dist2(0, d-c);
     uniform_real_distribution<> dist3(0, 1);
     double** seqArr = new double*[N];
-    double rot1 = dist3(gen) * (b-a) + a;
-    double rot2 = ((rot1 - a) / (b-a)) * (d-c) + c;
+    double offset = dist3(gen);
     //double rot1 = dist1(gen);
     //double rot2 = dist2(gen);
     for (int i = 0; i < N; i++) {
         seqArr[i] = new double[2];
-        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + rot1 + a;
-        seqArr[i][1] = (d-c) * radicalInverse(primes[1], i+1) + rot2 + c;
+        seqArr[i][0] = (b-a) * (radicalInverse(primes[0], i+1) + offset) + a;
+        seqArr[i][1] = (d-c) * (radicalInverse(primes[1], i+1) + offset) + c;
         if (seqArr[i][0] > b) {
             seqArr[i][0] -= b-a;
         }
@@ -130,6 +129,32 @@ double** genPureMonteCarlo2D(int N, double a, double b, double c, double d, mt19
         seqArr[i] = new double[2];
         seqArr[i][0] = distX(gen);
         seqArr[i][1] = distY(gen);
+    }
+    return seqArr;
+}
+
+double* genAntitheticMonteCarlo1D(int N, double a, double b, mt19937 & gen) {
+    uniform_real_distribution<> dist(a, b);
+    double* seqArr = new double[N];
+    for (int i = 0; i < N/2.0; i++) {
+        seqArr[i] = dist(gen);
+        seqArr[N-i-1] = b-(seqArr[i]-a);
+    }
+    return seqArr;
+}
+
+double** genAntitheticMonteCarlo2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    uniform_real_distribution<> distX(a, b);
+    uniform_real_distribution<> distY(c, d);
+    double** seqArr = new double*[N];
+    for (int i = 0; i < N; i++)
+    	seqArr[i] = new double[2];
+    for (int i = 0; i < N/2.0; i++) {
+        seqArr[i] = new double[2];
+        seqArr[i][0] = distX(gen);
+        seqArr[i][1] = distY(gen);
+        seqArr[N-i-1][0] = b-(seqArr[i][0]-a);
+        seqArr[N-i-1][1] = d-(seqArr[i][1]-c);
     }
     return seqArr;
 }
@@ -640,6 +665,13 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
         }
         ofs << avgError/(numTrials) << ",";
         avgError = 0;
+        //Monte Carlo w/ antithetic sampling
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genAntitheticMonteCarlo2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
         //Uniform
         for (int i = 0; i < numTrials; i++) {
             temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genUniform2D, gen);
@@ -678,6 +710,16 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
     }
 }
 
+void printPoints2D(int N, function<double** (int, double, double, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
+    ofstream ofs("points.txt", ios::out);
+    //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
+    double** points = sampleGen(N, 0, 1, 0, 1, gen);
+    for (int i = 0; i < N; i++) {
+        ofs << points[i][0] << "," << points[i][1] << endl;
+    }
+    delete points;
+}
+
 int main(int argc, char** argv) {
     string fileName = argv[1];
     random_device r;
@@ -699,9 +741,10 @@ int main(int argc, char** argv) {
 
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,sampleQuad,groundTruthQuad,gen,fileName);
     //printRMSE1D(numLambdas,numSamples,numTrials,sampleStep,groundTruthStep,gen);
-    printError2D(81,1000,gaussian,groundTruthGaussian,gen);
+    //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printConvergenceRates1D(6,150,numLambdas,numTrials,sampleStep,groundTruthStep,gen);
-    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    printPoints2D(500,genPureMonteCarlo2D,gen);
 }

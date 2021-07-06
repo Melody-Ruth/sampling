@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N, mc, un, st, nr, mj, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, st, nr, mj, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo')
+plt.plot(N, an, linestyle='-', marker='.', label='Antithetic Monte Carlo')
 plt.plot(N, un, linestyle='-', marker='.', label='Uniform')
 plt.plot(N, st, linestyle='-', marker='.', label='Stratified')
 plt.plot(N, ha, linestyle='-', marker='.', label='Halton')
@@ -20,6 +21,7 @@ plt.show()
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
+logAn = np.log(an, out=np.zeros_like(an), where=(an!=0))
 logUn = np.log(un, out=np.zeros_like(un), where=(un!=0))
 logSt = np.log(st, out=np.zeros_like(st), where=(st!=0))
 logHa = np.log(ha, out=np.zeros_like(ha), where=(ha!=0))
@@ -29,6 +31,8 @@ logMj = np.log(mj, out=np.zeros_like(mj), where=(mj!=0))
 
 m, b = np.polyfit(logN, logMc, 1)
 plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logAn, 1)
+plt.plot(N, an, linestyle='-', marker='.', label='Antithetic Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logUn, 1)
 plt.plot(N, un, linestyle='-', marker='.', label='Uniform (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logSt, 1)
