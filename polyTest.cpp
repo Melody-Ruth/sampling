@@ -671,10 +671,10 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
         //Halton
         for (int i = 0; i < 1; i++) {
             temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeqRot2D, gen);
-            //cout << "error for n = " << n << " is " << abs(temp-groundTruth) << endl;
+            cout << "error for n = " << n << " is " << abs(temp-groundTruth) << endl;
             avgError += abs(temp-groundTruth);
         }
-        ofs << avgError/(numTrials) << endl;
+        ofs << avgError << endl;
     }
 }
 
@@ -699,9 +699,9 @@ int main(int argc, char** argv) {
 
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,sampleQuad,groundTruthQuad,gen,fileName);
     //printRMSE1D(numLambdas,numSamples,numTrials,sampleStep,groundTruthStep,gen);
-    printError2D(1024,100,gaussian,groundTruthGaussian,gen);
+    printError2D(81,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printConvergenceRates1D(6,150,numLambdas,numTrials,sampleStep,groundTruthStep,gen);
-    //printConvergenceRates2D(2,30,numTrials,gaussian,groundTruthGaussian,gen);
+    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
 }
