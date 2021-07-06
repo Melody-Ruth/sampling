@@ -1,0 +1,47 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+N, mc, un, st, nr, mj, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+
+plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo')
+plt.plot(N, un, linestyle='-', marker='.', label='Uniform')
+plt.plot(N, st, linestyle='-', marker='.', label='Stratified')
+plt.plot(N, ha, linestyle='-', marker='.', label='Halton')
+plt.plot(N, nr, linestyle='-', marker='.', label='N-Rooks')
+plt.plot(N, mj, linestyle='-', marker='.', label='Multi-Jitter')
+#plt.yscale('log')
+#plt.xscale('log')
+
+plt.xlabel('Number of Samples')
+plt.ylabel('Error')
+plt.title('2D convergence graphs')
+plt.legend()
+plt.show()
+
+logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
+logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
+logUn = np.log(un, out=np.zeros_like(un), where=(un!=0))
+logSt = np.log(st, out=np.zeros_like(st), where=(st!=0))
+logHa = np.log(ha, out=np.zeros_like(ha), where=(ha!=0))
+logNr = np.log(nr, out=np.zeros_like(nr), where=(nr!=0))
+logMj = np.log(mj, out=np.zeros_like(mj), where=(mj!=0))
+#plt.plot(np.log(np.arange(1,700)), np.log(np.power(np.arange(1.0,700.0),-0.5)), linestyle='-', label='N^-0.5')
+
+m, b = np.polyfit(logN, logMc, 1)
+plt.plot(logN, logMc, linestyle='-', marker='.', label='Pure Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logUn, 1)
+plt.plot(logN, logUn, linestyle='-', marker='.', label='Uniform (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logSt, 1)
+plt.plot(logN, logSt, linestyle='-', marker='.', label='Stratified (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logHa, 1)
+plt.plot(logN, logHa, linestyle='-', marker='.', label='Halton (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logNr, 1)
+plt.plot(logN, logNr, linestyle='-', marker='.', label='N-Rooks (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logMj, 1)
+plt.plot(logN, logMj, linestyle='-', marker='.', label='Multi-Jitter (approx rate: '+"{:.4f}".format(m)+')')
+
+plt.xlabel('log(Number of Samples)')
+plt.ylabel('log(RMSE)')
+plt.title('2D convergence graphs')
+plt.legend()
+plt.show()

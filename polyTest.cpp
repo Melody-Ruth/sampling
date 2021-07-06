@@ -84,8 +84,31 @@ double** genHaltonSeq2D(int N, double a, double b, double c, double d, mt19937 &
     double** seqArr = new double*[N];
     for (int i = 0; i < N; i++) {
         seqArr[i] = new double[2];
-        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + a;
+        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + b;
         seqArr[i][1] = (d-c) * radicalInverse(primes[1], i+1) + c;
+    }
+    return seqArr;
+}
+
+double** genHaltonSeqRot2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    uniform_real_distribution<> dist1(0, b-a);
+    uniform_real_distribution<> dist2(0, d-c);
+    uniform_real_distribution<> dist3(0, 1);
+    double** seqArr = new double*[N];
+    double rot1 = dist3(gen) * (b-a) + a;
+    double rot2 = ((rot1 - a) / (b-a)) * (d-c) + c;
+    //double rot1 = dist1(gen);
+    //double rot2 = dist2(gen);
+    for (int i = 0; i < N; i++) {
+        seqArr[i] = new double[2];
+        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + rot1 + a;
+        seqArr[i][1] = (d-c) * radicalInverse(primes[1], i+1) + rot2 + c;
+        if (seqArr[i][0] > b) {
+            seqArr[i][0] -= b-a;
+        }
+        if (seqArr[i][1] > d) {
+            seqArr[i][1] -= d-c;
+        }
     }
     return seqArr;
 }
@@ -282,8 +305,8 @@ double* fourierCoefs1D(double a, double b, int N, int numTrials, double wStep, i
 
 double** fourierCoefs2D(double a, double b, double c, double d, int N, int numTrials, double wStep, int numW, function<double** (int, double, double, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
     //Round N to close perfect square
-    N = sqrt(N);
-    N = N * N;
+    //N = sqrt(N);
+    //N = N * N;
     
     double** samples;
     double** spectra = new double*[numW*2+1];
@@ -302,7 +325,7 @@ double** fourierCoefs2D(double a, double b, double c, double d, int N, int numTr
                 for (int j = 0; j < N; j++) {
                     temp += exp(-2 * M_PI * wStep * (wX * samples[j][0] + wY * samples[j][1]) * complex<double>(0,1));
                 }
-                spectra[-wY + numW][wX + numW] += norm(temp) / (N * numTrials);
+                spectra[-wY + numW][wX + numW] += norm(temp) / (N * numTrials);//Each coefficient multiplied by sqrt(N) compared to regular (?) formula
             }
         }
         for (int i = 0; i < N; i++) {
@@ -355,6 +378,13 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
             image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
         }
     }
+    //Halton (Since it's 1D this is a.k.a. van der Corput)
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genHaltonSeq1D, gen);
+            image[(unsigned int) ((i + 440)*imgWidth + j + 20)] = temp;
+        }
+    }
     //Make image file
     ofstream ofs(fileName, ios::out | ios::binary);
     ofs << "P6\n" << imgWidth << " " << imgHeight << "\n255\n"; 
@@ -397,6 +427,15 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genStratified1D, gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Halton:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genHaltonSeq1D, gen);
             avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
         }
     }
@@ -447,6 +486,13 @@ void printRMSE2D(int numSamples, int numTrials, function<double (double,double)>
         avgError += (temp-groundTruth) * (temp-groundTruth);
     }
     cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
+    avgError = 0;
+    cout << "Halton:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = estimateIntegral2D(0, 1, 0, 1, numSamples, testFunc, genHaltonSeq2D, gen);
+        avgError += (temp-groundTruth) * (temp-groundTruth);
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials)) << endl << endl;
 }
 
 /**
@@ -494,6 +540,13 @@ void printError2D(int numSamples, int numTrials, function<double (double,double)
         avgError += abs(temp-groundTruth);
     }
     cout << "RMSE: " << avgError/(numTrials) << endl << endl;
+    avgError = 0;
+    cout << "Halton:\n";
+    for (int i = 0; i < numTrials; i++) {
+        temp = estimateIntegral2D(0, 1, 0, 1, numSamples, testFunc, genHaltonSeqRot2D, gen);
+        avgError += abs(temp-groundTruth);
+    }
+    cout << "RMSE: " << avgError/(numTrials) << endl << endl;
 }
 
 void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight, int maxW, function<double** (int, double, double, double, double, mt19937 &)> sampleGen, mt19937 & gen, string fileName) {
@@ -505,7 +558,6 @@ void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight
     double** testSpectra = fourierCoefs2D(0, 1, 0, 1, numSamples, numTrials, 1, maxW, sampleGen, gen);
     for (int i = 0; i < maxW * 2 + 1; i++) {
         for (int j = 0; j < maxW * 2 + 1; j++) {
-            //cout << testSpectra[i][j] << endl;
             image[i * imgWidth + j] = (unsigned char) min(255, (int) (200 * testSpectra[i][j]));
         }
     }
@@ -523,40 +575,107 @@ void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight
     ofs.close();
 }
 
-double** stratified2DFourierCoefs(double a, double b, double c, double d, int N, int numTrials, double wStep, int numW, mt19937 & gen) {
-    int numRows = (int) sqrt(N);
-    double sampleXs[numRows*numRows] = {0};
-    double sampleYs[numRows*numRows] = {0};
-    uniform_real_distribution<> dist(0, 1);
-    double strataSizeX = (b-a)/numRows;
-    double strataSizeY = (d-c)/numRows;
+void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials, function<double (double,double)> testFunc, function<double (double)> groundTruthFunc, mt19937 & gen) {
+    double avgError = 0;
+    double temp;
+    ofstream ofs("conv.txt", ios::out);
+    //ofs << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
+    for (int n = startN; n <= endN; n++) {
+        ofs << n << ",";
+        avgError = 0;
+        //Monte Carlo
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < 1; j += 1.0/numLambdas) {
+                temp = estimateIntegral1D(0, 1, n, j, testFunc, genPureMonteCarlo1D, gen);
+                avgError += (temp-groundTruthFunc(j)) * (temp-groundTruthFunc(j));
+            }
+            //ofs << "trial done" << endl;
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Uniform
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < 1; j += 1.0/numLambdas) {
+                temp = estimateIntegral1D(0, 1, n, j, testFunc, genUniform1D, gen);
+                avgError += (temp-groundTruthFunc(j)) * (temp-groundTruthFunc(j));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Stratified
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < 1; j += 1.0/numLambdas) {
+                temp = estimateIntegral1D(0, 1, n, j, testFunc, genStratified1D, gen);
+                avgError += (temp-groundTruthFunc(j)) * (temp-groundTruthFunc(j));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Halton
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < 1; j += 1.0/numLambdas) {
+                temp = estimateIntegral1D(0, 1, n, j, testFunc, genHaltonSeq1D, gen);
+                avgError += (temp-groundTruthFunc(j)) * (temp-groundTruthFunc(j));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << endl;
+    }
+}
 
-    double** spectra = new double*[numW*2+1];
-    for (int i = 0; i < numW*2+1; i++) {
-        spectra[i] = new double[numW*2+1];
-        for (int j = 0; j < numW*2+1; j++) {
-            spectra[i][j] = 0;
+//Tests perfect square between startN^2 and endN^2, inclusive
+void printConvergenceRates2D(int startN, int endN, int numTrials, function<double (double,double)> testFunc, double groundTruth, mt19937 & gen) {
+    double avgError = 0;
+    double temp;
+    int n;
+    ofstream ofs("conv.txt", ios::out);
+    //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
+    for (int j = startN; j <= endN; j++) {
+        n = j * j;
+        ofs << n << ",";
+        avgError = 0;
+        //Monte Carlo
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genPureMonteCarlo2D, gen);
+            avgError += abs(temp-groundTruth);
         }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Uniform
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genUniform2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Stratified
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genStratified2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //N-Rooks
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genNRooks2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Multi-jitter
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genMultiJitter2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Halton
+        for (int i = 0; i < 1; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeqRot2D, gen);
+            //cout << "error for n = " << n << " is " << abs(temp-groundTruth) << endl;
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << endl;
     }
-    complex<double> temp(0,0);
-    for (int i = 0; i < numTrials; i++) {
-        for (int k = 0; k < numRows; k++) {
-            for (int j = 0; j < numRows; j++) {
-                sampleXs[k * numRows + j] = a + (j + dist(gen)) * strataSizeX;
-                sampleYs[k * numRows + j] = c + (k + dist(gen)) * strataSizeY;
-            }
-        }
-        for (int wX = -numW; wX <= numW; wX++) {
-            for (int wY = -numW; wY <= numW; wY++) {
-                temp = (0,0);
-                for (int j = 0; j < numRows * numRows; j++) {
-                    temp += exp(-2 * M_PI * wStep * (wX * sampleXs[j] + wY * sampleYs[j]) * complex<double>(0,1));
-                }
-                spectra[-wY + numW][wX + numW] += norm(temp) / (numRows * numRows * numTrials);//extra gone as normalization
-            }
-        }
-    }
-    return spectra;
 }
 
 int main(int argc, char** argv) {
@@ -564,9 +683,9 @@ int main(int argc, char** argv) {
     random_device r;
     mt19937 gen(r());
     int imgWidth = 500;
-    int imgHeight = 500;
-    int numSamples = 256;
-    int numTrials = 10;
+    int imgHeight = 600;
+    int numSamples = 16;
+    int numTrials = 1000;
     int numLambdas = 250;
     double avgError = 0;
     double avgError2 = 0;
@@ -579,8 +698,10 @@ int main(int argc, char** argv) {
     const double groundTruthBilinear = 0.25;
 
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,sampleQuad,groundTruthQuad,gen,fileName);
-    //printRMSE1D(numLambdas,numSamples,numTrials,sampleQuad,groundTruthQuad,gen);
-    //printError2D(numSamples,numTrials,gaussian,groundTruthGaussian,gen);
-    makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genMultiJitter2D,gen,"test2.ppm");
+    //printRMSE1D(numLambdas,numSamples,numTrials,sampleStep,groundTruthStep,gen);
+    printError2D(1024,100,gaussian,groundTruthGaussian,gen);
+    //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
+    //printConvergenceRates1D(6,150,numLambdas,numTrials,sampleStep,groundTruthStep,gen);
+    //printConvergenceRates2D(2,30,numTrials,gaussian,groundTruthGaussian,gen);
 }
