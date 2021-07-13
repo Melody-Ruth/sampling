@@ -37,6 +37,20 @@ double groundTruthStep(double lambda) {
     return 150 * (1-lambda);
 }
 
+//Standard deviation (sigma) is 1
+//Mean (mu) is lambda
+//Returns the derivative of the gaussian w.r.t. its mean
+double gaussianDerivativeWRTMean1D(double x, double lambda) {
+    return exp(-0.5 * (x - lambda) * (x - lambda)) * (x - lambda) / sqrt(2 * M_PI);
+}
+
+//Standard deviation (sigma) is 1
+//Mean (mu) is lambda
+//Returns the integral from 0 to 1 of the derivative of the gaussian w.r.t. its mean
+double groundTruthGaussianDerivativeWRTMean1D(double lambda) {
+    return -(exp(-0.5 * (1 - lambda) * (1 - lambda)) - exp(-0.5 * lambda * lambda))/sqrt(2 * M_PI);
+}
+
 double disk(double x, double y) {
     return (double) (x*x + y*y < 2/M_PI);
 }
@@ -376,38 +390,59 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
         image[i] = 255;
     }
     double temp;
+    double minVal = 10000000000;
+    double maxVal = -10000000000;
+    for (double j = 0; j < numLambdas; j++) {
+        temp = groundTruthFunc(j/numLambdas);
+        if (temp < minVal) {
+            minVal = temp;
+        }
+        if (temp > maxVal) {
+            maxVal = temp;
+        }
+    }
     //Ground Truth
     for (int i = 0; i < 100; i++) {
         for (double j = 0; j < numLambdas; j++) {
-            image[(unsigned int) (i*imgWidth + j + 20)] = groundTruthFunc(j/numLambdas);
+            image[(unsigned int) (i*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (groundTruthFunc(j/numLambdas) - minVal)));
+            //cout << groundTruthFunc(j/numLambdas) << endl;
         }
     }
+    cout << "ground truth done" << endl;
     //Monte Carlo
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genPureMonteCarlo1D, gen);
-            image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = temp;
+            image[(unsigned int) ((i + 110)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
         }
     }
+    cout << "pure monte done" << endl;
     //Uniform
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genUniform1D, gen);
-            image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = temp;
+            image[(unsigned int) ((i + 220)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
         }
     }
     //Stratified
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genStratified1D, gen);
-            image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = temp;
+            image[(unsigned int) ((i + 330)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
         }
     }
     //Halton (Since it's 1D this is a.k.a. van der Corput)
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genHaltonSeq1D, gen);
-            image[(unsigned int) ((i + 440)*imgWidth + j + 20)] = temp;
+            image[(unsigned int) ((i + 440)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+        }
+    }
+    //Antithetic Monte Carlo
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genAntitheticMonteCarlo1D, gen);
+            image[(unsigned int) ((i + 550)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
         }
     }
     //Make image file
@@ -439,6 +474,15 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
     }
     cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
     avgError = 0;
+    cout << "Antithetic Monte Carlo:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genAntitheticMonteCarlo1D, gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas)) * (temp-groundTruthFunc(j/numLambdas));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
     cout << "Uniform:\n";
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
@@ -465,6 +509,103 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
         }
     }
     cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+}
+
+/**
+ * Prints the variance from estimating the integral of a particular 1D function over the interval [0, 1]
+ * testFunc is the function to approximate the integral of, and groundTruthFunc returns the correct value of the integral for a particular lambda
+ * Lambda will range from 0 to 1, with numLambdas intermediate values tested
+ * numTrials trials will be done for each value of lambda
+ * Variance will be calculated for pure Monte Carlo (uniformly random sampling),
+ * antithetic Monte Carlo (points generated in pairs as x and 1-x, where x is generated uniformly randomly)
+ * uniform (sample points at the center of each strata),
+ * and stratified/jittered (sample points at a random location within each strata)
+ */
+void printVariance1D(int numLambdas, int numSamples, int numTrials, function<double (double,double)> testFunc, function<double (double)> groundTruthFunc, mt19937 & gen) {
+    double avgVar = 0;
+    double tempVar = 0;
+    double avgEst = 0;
+    double ests[numTrials];
+    double temp;
+    cout << "Pure Monte Carlo:\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genPureMonteCarlo1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Antithetic Monte Carlo:\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genAntitheticMonteCarlo1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Uniform:\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genUniform1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Stratified:\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genStratified1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Halton:\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genHaltonSeq1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
 }
 
 /**
@@ -618,6 +759,16 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
+        //Antithetic Monte Carlo
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < 1; j += 1.0/numLambdas) {
+                temp = estimateIntegral1D(0, 1, n, j, testFunc, genAntitheticMonteCarlo1D, gen);
+                avgError += (temp-groundTruthFunc(j)) * (temp-groundTruthFunc(j));
+            }
+            //ofs << "trial done" << endl;
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
         //Uniform
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < 1; j += 1.0/numLambdas) {
@@ -644,6 +795,7 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << endl;
+        cout << "n = " << n << " done" << endl;
     }
 }
 
@@ -725,9 +877,9 @@ int main(int argc, char** argv) {
     random_device r;
     mt19937 gen(r());
     int imgWidth = 500;
-    int imgHeight = 600;
+    int imgHeight = 700;
     int numSamples = 16;
-    int numTrials = 1000;
+    int numTrials = 100;
     int numLambdas = 250;
     double avgError = 0;
     double avgError2 = 0;
@@ -739,12 +891,13 @@ int main(int argc, char** argv) {
     const double groundTruthGaussian = 0.55774628535;
     const double groundTruthBilinear = 0.25;
 
-    //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,sampleQuad,groundTruthQuad,gen,fileName);
-    //printRMSE1D(numLambdas,numSamples,numTrials,sampleStep,groundTruthStep,gen);
+    makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
+    //printRMSE1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen);
+    //printVariance1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen);
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
-    //printConvergenceRates1D(6,150,numLambdas,numTrials,sampleStep,groundTruthStep,gen);
+    //printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
-    printPoints2D(500,genPureMonteCarlo2D,gen);
+    //printPoints2D(500,genPureMonteCarlo2D,gen);
 }

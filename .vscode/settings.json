@@ -9,6 +9,7 @@
         "cstdlib": "cpp",
         "ostream": "cpp",
         "cmath": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "utility": "cpp"
     }
 }

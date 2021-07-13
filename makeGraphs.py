@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N, mc, un, st, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, st, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo')
+plt.plot(N, an, linestyle='-', marker='.', label='Antithetic Monte Carlo')
 plt.plot(N, un, linestyle='-', marker='.', label='Uniform')
 plt.plot(N, st, linestyle='-', marker='.', label='Stratified')
 plt.plot(N, ha, linestyle='-', marker='.', label='Halton')
+plt.yscale('log')
+plt.xscale('log')
 
 plt.xlabel('Number of Samples')
 plt.ylabel('RMSE')
