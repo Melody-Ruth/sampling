@@ -243,7 +243,7 @@ double* genStratified1D(int N, double a, double b, mt19937 & gen) {
     return seqArr;
 }
 
-//antithetic within strata, as the Error analysis of estimators that use combinations of stochastic sampling strategies for direct illumination
+//antithetic within strata, as in the Error analysis of estimators that use combinations of stochastic sampling strategies for direct illumination
 double* genStratifiedAntithetic1D(int N, double a, double b, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     double strataSize = 2*(b-a)/N;
@@ -267,6 +267,22 @@ double* genStratifiedAntithetic1D2(int N, double a, double b, mt19937 & gen) {
         strataOffset = dist(gen);
         seqArr[i] = a + strataSize * (i + strataOffset);
         seqArr[N - i - 1] = b - strataSize * (i + strataOffset);
+    }
+    return seqArr;
+}
+
+//antithetic locally and globally
+double* genStratifiedAntithetic1D3(int N, double a, double b, mt19937 & gen) {
+    uniform_real_distribution<> dist(0, 1);
+    double strataSize = 2*(b-a)/N;
+    float strataOffset;
+    double* seqArr = new double[N];
+    for (int i = 0; i < N/4.0; i++) {
+        strataOffset = dist(gen);
+        seqArr[i] = a + strataSize * (i + strataOffset);
+        seqArr[(int) (N/2.0 - i - 1)] = a + strataSize * (i + 1 - strataOffset);
+        seqArr[(int) (N - i - 1)] = b - (seqArr[i] - a);
+        seqArr[(int) (N - (N/2.0 - i - 1) - 1)] = b - (seqArr[(int) (N/2.0 - i - 1)] - a);
     }
     return seqArr;
 }
@@ -945,6 +961,15 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
+        //Stratified (antithetic globally and locally)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratifiedAntithetic1D3, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
         //Halton
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
@@ -1084,7 +1109,7 @@ int main(int argc, char** argv) {
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
-    printPoints1D(numSamples, genStratifiedAntithetic1D,gen);
+    //printPoints1D(numSamples, genStratifiedAntithetic1D3,gen);
     //printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0.0,1.0);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
     //printPoints2D(500,genPureMonteCarlo2D,gen);
