@@ -56,6 +56,13 @@ double groundTruthGaussianDerivativeWRTMean1D(double lambda, double intervalStar
     return -(exp(-0.5 * (intervalEnd - lambda) * (intervalEnd - lambda)) - exp(-0.5 * (intervalStart - lambda) * (intervalStart - lambda)))/sqrt(2 * M_PI);
 }
 
+//Standard deviation (sigma) is 1
+//Mean (mu) is lambda
+//Returns the derivative of the gaussian w.r.t. its mean
+double gaussianDerivativeWRTMeanTimesStep1D(double x, double lambda) {
+    return sampleStep(x, lambda) * gaussianDerivativeWRTMean1D(x, lambda);
+}
+
 double disk(double x, double y) {
     return (double) (x*x + y*y < 2/M_PI);
 }
