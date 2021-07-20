@@ -10,3 +10,5 @@ plt.plot(x, y, '.', label='Halton')
 plt.title('First 500 points')
 plt.legend()
 plt.show()
+
+plt.savefig('tempConvGraph.png')

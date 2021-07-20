@@ -1038,6 +1038,17 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
     }
 }
 
+void printPoints1D(int N, function<double* (int, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
+    ofstream ofs("points.txt", ios::out);
+    //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
+    double* points = sampleGen(N, 0, 1, gen);
+    for (int i = 0; i < N; i++) {
+        ofs << points[i] << ",1" << endl;
+    }
+    delete points;
+}
+
+
 void printPoints2D(int N, function<double** (int, double, double, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
     ofstream ofs("points.txt", ios::out);
     //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
@@ -1073,7 +1084,8 @@ int main(int argc, char** argv) {
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
-    printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0.0,1.0);
+    printPoints1D(numSamples, genStratifiedAntithetic1D,gen);
+    //printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0.0,1.0);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
     //printPoints2D(500,genPureMonteCarlo2D,gen);
 }
