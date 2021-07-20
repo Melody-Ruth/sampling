@@ -218,6 +218,17 @@ double* genUniform1D(int N, double a, double b, mt19937 & gen) {
     return seqArr;
 }
 
+double* genUniformJitter1D(int N, double a, double b, mt19937 & gen) {
+    uniform_real_distribution<> dist3(0, 1);
+    double offset = dist3(gen);
+    double strataSize = (b-a)/N;
+    double* seqArr = new double[N];
+    for (int i = 0; i < N; i++) {
+        seqArr[i] = a + fmod(strataSize/2 + (i + offset) * strataSize, b-a);
+    }
+    return seqArr;
+}
+
 double** genUniform2D(int N, double a, double b, double c, double d, mt19937 & gen) {
     int dimN = sqrt(N);
     double strataSizeX = (b-a)/dimN;
@@ -934,6 +945,15 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
+        //Uniform Jitter
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genUniformJitter1D, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
         //Stratified
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
@@ -1109,8 +1129,8 @@ int main(int argc, char** argv) {
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
-    printPoints1D(numSamples, genStratified1D,gen);
-    //printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0.0,1.0);
+    //printPoints1D(numSamples, genUniformJitter1D,gen);
+    printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-8.0,8.0);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
     //printPoints2D(500,genPureMonteCarlo2D,gen);
 }

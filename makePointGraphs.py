@@ -3,7 +3,7 @@ import numpy as np
 
 x, y = np.loadtxt('points.txt', delimiter=',', unpack=True)
 
-plt.plot(x, y, '.', label='Stratified')
+plt.plot(x, y, '.', label='Uniform Jitter')
 for i in range(17):
     plt.axvline(x=i/16, linestyle='--', color='red')
 #plt.yscale('log')
