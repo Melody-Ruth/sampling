@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N, mc, an, un, st, stan, ha, haro, haan = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, st, stan, stan2, ha, haro, haan = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
@@ -9,6 +9,7 @@ logUn = np.log(un, out=np.zeros_like(un), where=(un!=0))
 logAn = np.log(an, out=np.zeros_like(an), where=(an!=0))
 logSt = np.log(st, out=np.zeros_like(st), where=(st!=0))
 logStan = np.log(stan, out=np.zeros_like(stan), where=(stan!=0))
+logStan2 = np.log(stan2, out=np.zeros_like(stan2), where=(stan2!=0))
 logHa = np.log(ha, out=np.zeros_like(ha), where=(ha!=0))
 logHaro = np.log(haro, out=np.zeros_like(haro), where=(haro!=0))
 logHaan = np.log(haan, out=np.zeros_like(haan), where=(haan!=0))
@@ -22,7 +23,9 @@ plt.plot(N, un, linestyle='-', marker='.', label='Uniform (approx rate: '+"{:.4f
 m, b = np.polyfit(logN, logSt, 1)
 plt.plot(N, st, linestyle='-', marker='.', label='Stratified (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logStan, 1)
-plt.plot(N, stan, linestyle='-', marker='.', label='Stratified, antithetic (approx rate: '+"{:.4f}".format(m)+')')
+plt.plot(N, stan, linestyle='-', marker='.', label='Stratified, antithetic (local) (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logStan2, 1)
+plt.plot(N, stan2, linestyle='-', marker='.', label='Stratified, antithetic (global) (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logHa, 1)
 plt.plot(N, ha, linestyle='-', marker='.', label='Halton (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logHaro, 1)
@@ -37,6 +40,8 @@ plt.ylabel('Log(RMSE)')
 plt.title('1D convergence graphs')
 plt.legend()
 plt.show()
+
+plt.savefig('tempConvGraph.png')
 
 def sampleQuad(x, myLambda):
     return 600 * (x-myLambda) * (x-myLambda) + 1
