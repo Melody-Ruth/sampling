@@ -1,14 +1,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N, mc, an, un, st, ha = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, st, stan, ha, haro, haan = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
 logUn = np.log(un, out=np.zeros_like(un), where=(un!=0))
 logAn = np.log(an, out=np.zeros_like(an), where=(an!=0))
 logSt = np.log(st, out=np.zeros_like(st), where=(st!=0))
+logStan = np.log(stan, out=np.zeros_like(stan), where=(stan!=0))
 logHa = np.log(ha, out=np.zeros_like(ha), where=(ha!=0))
+logHaro = np.log(haro, out=np.zeros_like(haro), where=(haro!=0))
+logHaan = np.log(haan, out=np.zeros_like(haan), where=(haan!=0))
 
 m, b = np.polyfit(logN, logMc, 1)
 plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
@@ -18,8 +21,14 @@ m, b = np.polyfit(logN, logUn, 1)
 plt.plot(N, un, linestyle='-', marker='.', label='Uniform (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logSt, 1)
 plt.plot(N, st, linestyle='-', marker='.', label='Stratified (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logStan, 1)
+plt.plot(N, stan, linestyle='-', marker='.', label='Stratified, antithetic (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logHa, 1)
 plt.plot(N, ha, linestyle='-', marker='.', label='Halton (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logHaro, 1)
+plt.plot(N, haro, linestyle='-', marker='.', label='Halton, rotated (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logHaan, 1)
+plt.plot(N, haan, linestyle='-', marker='.', label='Halton, antithetic, (approx rate: '+"{:.4f}".format(m)+')')
 plt.yscale('log')
 plt.xscale('log')
 

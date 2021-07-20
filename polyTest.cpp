@@ -113,7 +113,7 @@ double* genHaltonSeqAntithetic1D(int N, double a, double b, mt19937 & gen) {
     double* seqArr = new double[N];
     for (int i = 0; i < N/2.0; i++) {
         seqArr[i] = (b-a) * radicalInverse(2, i+1) + a;
-        seqArr[N - i] = -(b-a) * radicalInverse(2, i+1) + b;
+        seqArr[N - i - 1] = -(b-a) * radicalInverse(2, i+1) + b;
     }
     return seqArr;
 }
@@ -239,6 +239,23 @@ double* genStratified1D(int N, double a, double b, mt19937 & gen) {
     double* seqArr = new double[N];
     for (int i = 0; i < N; i++) {
         seqArr[i] = a + strataSize * (i + dist(gen));
+    }
+    return seqArr;
+}
+
+//antithetic within strata, as the Error analysis of estimators that use combinations of stochastic sampling strategies for direct illumination
+double* genStratifiedAntithetic1D(int N, double a, double b, mt19937 & gen) {
+    uniform_real_distribution<> dist(0, 1);
+    double strataSize = 2*(b-a)/N;
+    float strataOffset;
+    double* seqArr = new double[N];
+    for (int i = 0; i < N; i++) {
+        seqArr[i] = 0;
+    }
+    for (int i = 0; i < N/2.0; i++) {
+        strataOffset = dist(gen);
+        seqArr[i] = a + strataSize * (i + strataOffset);
+        seqArr[N - i - 1] = a + strataSize * (i + 1 - strataOffset);
     }
     return seqArr;
 }
@@ -501,6 +518,7 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
 void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double (double,double)> testFunc, function<double (double, double, double)> groundTruthFunc, mt19937 & gen, double intervalStart, double intervalEnd) {
     double avgError = 0;
     double temp;
+    
     cout << "Monte Carlo:\n";
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
@@ -532,6 +550,15 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genStratified1D, gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Stratified (antithetic):\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genStratifiedAntithetic1D, gen);
             avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
         }
     }
@@ -645,12 +672,60 @@ void printVariance1D(int numLambdas, int numSamples, int numTrials, function<dou
     }
     cout << "Variance: " << avgVar/numLambdas << endl << endl;
     avgVar = 0;
+    cout << "Stratified (antithetic):\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genStratifiedAntithetic1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
     cout << "Halton:\n";
     for (double j = 0; j < numLambdas; j++) {
         tempVar = 0;
         avgEst = 0;
         for (int i = 0; i < numTrials; i++) {
             ests[i] = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genHaltonSeq1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Halton (rotated):\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genHaltonSeqRot1D, gen);
+            avgEst += ests[i];
+        }
+        avgEst /= numTrials;
+        for (int i = 0; i < numTrials; i++) {
+            tempVar += (ests[i]-avgEst) * (ests[i]-avgEst);
+        }
+        avgVar += tempVar/(numTrials - 1);
+    }
+    cout << "Variance: " << avgVar/numLambdas << endl << endl;
+    avgVar = 0;
+    cout << "Halton (antithetic):\n";
+    for (double j = 0; j < numLambdas; j++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int i = 0; i < numTrials; i++) {
+            ests[i] = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genHaltonSeqAntithetic1D, gen);
             avgEst += ests[i];
         }
         avgEst /= numTrials;
@@ -841,10 +916,37 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
+        //Stratified (antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratifiedAntithetic1D, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
         //Halton
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
                 temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeq1D, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Halton (rotated)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeqRot1D, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Halton (antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeqAntithetic1D, gen);
                 avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
             }
         }
@@ -946,12 +1048,12 @@ int main(int argc, char** argv) {
     const double groundTruthBilinear = 0.25;
 
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
-    printRMSE1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
+    //printRMSE1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
     //printVariance1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,gen,0,1);
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
-    //printConvergenceRates1D(6,150,numLambdas,numTrials,sampleStep,groundTruthStep,gen,-8.0,8.0);
+    printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-8.0,8.0);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
     //printPoints2D(500,genPureMonteCarlo2D,gen);
 }
