@@ -420,6 +420,23 @@ double estimateIntegral1D(double a, double b, int N, double lambda, function<dou
     return estimate;
 }
 
+//Simpson's 1/3 rule (quadratic interpolation)
+double estimateIntegralSimpsons1D(double a, double b, int N, double lambda, function<double (double,double)> F, mt19937 & gen) {
+    if (N % 2 == 0) {
+        N--;//N needs to be odd
+    }
+    double est = 0;
+    double sectionSize = (b-a) / ((N-1) / 2.0);
+    for (int i = 0; i < (N-1)/2.0; i++) {
+        double start = a + i * sectionSize;
+        double end = a + (i + 1) * sectionSize;
+        double mid = a + (start + end) / 2.0;
+        //cout << start << ", " << mid << ", " << end << endl;
+        est += (F(start,lambda) + 4 * F(mid,lambda) + F(end,lambda)) * sectionSize / 6.0;
+    }
+    return est;
+}
+
 double estimateIntegral2Lambdas1D(double a, double b, int N, double lambda1, double lambda2, function<double (double,double,double)> F, function<double* (int, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
     double* samplePoints = sampleGen(N, a, b, gen);
     double estimate = 0;
@@ -664,6 +681,15 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegral1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, genHaltonSeqAntithetic1D, gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Simpson's Rule:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, gen);
             avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
         }
     }
@@ -1317,6 +1343,15 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
                 avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
             }
         }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Simpson's Rule
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, j, testFunc, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << endl;
         cout << "n = " << n << " done" << endl;
     }
@@ -1545,8 +1580,8 @@ int main(int argc, char** argv) {
     int imgWidth = 500;
     int imgHeight = 700;
     int numSamples = 16;
-    int numTrials = 1000;
-    int numLambdas = 15;
+    int numTrials = 300;
+    int numLambdas = 300;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
@@ -1558,13 +1593,13 @@ int main(int argc, char** argv) {
     const double groundTruthBilinear = 0.25;
 
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
-    //printRMSE2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
+    //printRMSE1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
     //printVariance2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
     //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
-    printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0.0,1.0);
+    printConvergenceRates1D(6,150,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-8.0,8.0);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
     //printPoints2D(500,genPureMonteCarlo2D,gen);
 
