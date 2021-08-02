@@ -61,8 +61,8 @@ def sampleStep(x, myLambda):
 def gaussianDerivativeWRTMean1D(x, myLambda):
     return np.e ** (-0.5 * (x - myLambda) ** 2) * (x - myLambda) / ((2 * np.pi) ** 2)
 
-def gaussianDerivativeWRTMeanTimesStep1D(x, myLambda):
-    return sampleStep(x, myLambda) * gaussianDerivativeWRTMean1D(x, 0.5+myLambda)
+def gaussianDerivativeWRTMeanTimesStep1D(x, gausMean, heavLambda):
+    return sampleStep(x, heavLambda) * gaussianDerivativeWRTMean1D(x, gausMean)
 
 x = np.linspace(0.0, 3.0, 100)
 #for i in range(0, 30):
@@ -73,8 +73,8 @@ x = np.linspace(0.0, 3.0, 100)
 plt.clf()
 
 x = np.linspace(-8.0, 8.0, 100)
-y = gaussianDerivativeWRTMeanTimesStep1D(x, 1.4)
+y = gaussianDerivativeWRTMeanTimesStep1D(x, 0, 0.9)
 plt.plot(x, y)
-#plt.show()
+plt.show()
 
 #plt.savefig('gausTimesStep.png')
