@@ -1,0 +1,22 @@
+    double tempVar = 0;
+    double avgEst = 0;
+    double avgVar = 0;
+    double randomPos[200];
+    int n = 30;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < numTrials; i++) {
+        tempVar = 0;
+        avgEst = 0;
+        for (int j = 0; j < n/2; j++) {
+            randomPos[j] = dist(gen);
+            randomPos[n - j - 1] = 1 - randomPos[j];
+            avgEst += randomPos[j];
+            avgEst += randomPos[n - j - 1];
+        }
+        avgEst /= n;
+        for (int j = 0; j < n; j++) {
+            tempVar += (randomPos[j]-avgEst) * (randomPos[j]-avgEst);
+        }
+        avgVar += tempVar/(n-1);
+    }
+    cout << avgVar/numTrials << endl;
