@@ -3,13 +3,17 @@ import numpy as np
 
 x, y = np.loadtxt('points.txt', delimiter=',', unpack=True)
 
-plt.plot(x, y, '.', label='Uniform Jitter')
-for i in range(17):
-    plt.axvline(x=i/16, linestyle='--', color='red')
+plt.plot(x, y, '.', label='Locally Antithetic Stratified')
+for i in range(13):
+    plt.axvline(x=i/12, linestyle='--', color='red')
+
+for i in range(13):
+    plt.axhline(y=i/12, linestyle='--', color='red')
+    #plt.axline((0,i/12),(1,i/12), linestyle='--', color='red')
 #plt.yscale('log')
 #plt.xscale('log')
 
-plt.title('16 points')
+plt.title('288 points')
 plt.legend()
 plt.show()
 

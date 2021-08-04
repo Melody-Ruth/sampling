@@ -151,7 +151,7 @@ double* genHaltonSeqRotAntithetic1D(int N, double a, double b, mt19937 & gen) {
     double offset = dist3(gen);
     for (int i = 0; i < N/2.0; i++) {
         seqArr[i] = (b-a) * fmod(radicalInverse(2, i+1) + offset, 1) + a;
-        seqArr[N - i] = -(b-a) * fmod(radicalInverse(2, i+1) + offset, 1) + b;
+        seqArr[N - i - 1] = -(b-a) * fmod(radicalInverse(2, i+1) + offset, 1) + b;
     }
     return seqArr;
 }
@@ -184,6 +184,20 @@ double** genHaltonSeqRot2D(int N, double a, double b, double c, double d, mt1993
         if (seqArr[i][1] > d) {
             seqArr[i][1] -= d-c;
         }
+    }
+    return seqArr;
+}
+
+//new
+double** genHaltonSeqAntithetic2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    double** seqArr = new double*[N];
+    for (int i = 0; i < N/2.0; i++) {
+        seqArr[i] = new double[2];
+        seqArr[N - i - 1] = new double[2];
+        seqArr[i][0] = (b-a) * radicalInverse(primes[0], i+1) + a;
+        seqArr[i][1] = (d-c) * radicalInverse(primes[1], i+1) + c;
+        seqArr[N - i - 1][0] = -(b-a) * radicalInverse(primes[0], i+1) + b;
+        seqArr[N - i - 1][1] = -(d-c) * radicalInverse(primes[1], i+1) + d;
     }
     return seqArr;
 }
@@ -270,6 +284,28 @@ double** genUniform2D(int N, double a, double b, double c, double d, mt19937 & g
     return seqArr;
 }
 
+//new
+double** genUniformJitter2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    int dimN = sqrt(N);
+    double strataSizeX = (b-a)/dimN;
+    double strataSizeY = (d-c)/dimN;
+    double** seqArr = new double*[dimN * dimN];
+    uniform_real_distribution<> dist3(0, 1);
+    double offsetX = dist3(gen);
+    double offsetY = dist3(gen);
+    for (int i = 0; i < dimN; i++) {
+        for (int j = 0; j < dimN; j++) {
+            seqArr[i * dimN + j] = new double[dimN * dimN];//TODO: understand
+            seqArr[i * dimN + j][0] = a + (i + offsetX) * strataSizeX;
+            if (seqArr[i * dimN + j][0] > b) {
+                cout << "What????\n";
+            }
+            seqArr[i * dimN + j][1] = c + (j + offsetY) * strataSizeY;
+        }
+    }
+    return seqArr;
+}
+
 double* genStratified1D(int N, double a, double b, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     double strataSize = (b-a)/N;
@@ -325,6 +361,71 @@ double* genStratifiedAntithetic1D3(int N, double a, double b, mt19937 & gen) {
 }
 
 double** genStratified2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    uniform_real_distribution<> dist(0, 1);
+    int dimN = sqrt(N);
+    double strataSizeX = (b-a)/dimN;
+    double strataSizeY = (d-c)/dimN;
+    double** seqArr = new double*[dimN * dimN];
+    for (int i = 0; i < dimN; i++) {
+        for (int j = 0; j < dimN; j++) {
+            seqArr[i * dimN + j] = new double[2];
+            seqArr[i * dimN + j][0] = a + strataSizeX * (i + dist(gen));
+            seqArr[i * dimN + j][1] = c + strataSizeY * (j + dist(gen));
+        }
+    }
+    return seqArr;
+}
+
+//new
+//locally antithetic
+double** genStratifiedAntithetic2D(int N, double a, double b, double c, double d, mt19937 & gen) {
+    uniform_real_distribution<> dist(0, 1);
+    int dimN = sqrt(N/2);
+    double** seqArr = new double*[dimN * dimN * 2];
+    double strataSizeX = (b-a)/dimN;
+    double strataSizeY = (d-c)/dimN;
+    float strataOffset;
+    //cout << N << endl;
+    //cout << dimN << endl;
+    //cout << (dimN * dimN * 2) << endl;
+    for (int i = 0; i < dimN; i++) {
+        for (int j = 0; j < dimN; j++) {
+            //cout << (i * dimN + j) << endl;
+            //cout << (dimN * dimN * 2 - i * dimN - j - 1) << endl;
+            seqArr[i * dimN + j] = new double[2];
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1] = new double[2];
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][0] = a + strataSizeX * (i + strataOffset);
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1][0] = a + strataSizeX * (i + 1 - strataOffset);
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][1] = c + strataSizeY * (j + strataOffset);
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1][1] = c + strataSizeY * (j + 1 - strataOffset);
+        }
+    }
+    return seqArr;
+}
+
+//new
+//globally antithetic
+double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double d, mt19937 & gen) {
+    uniform_real_distribution<> dist(0, 1);
+    int dimN = sqrt(N);
+    double strataSizeX = (b-a)/dimN;
+    double strataSizeY = (d-c)/dimN;
+    double** seqArr = new double*[dimN * dimN];
+    for (int i = 0; i < dimN; i++) {
+        for (int j = 0; j < dimN; j++) {
+            seqArr[i * dimN + j] = new double[2];
+            seqArr[i * dimN + j][0] = a + strataSizeX * (i + dist(gen));
+            seqArr[i * dimN + j][1] = c + strataSizeY * (j + dist(gen));
+        }
+    }
+    return seqArr;
+}
+
+//new
+//locally and globally antithetic
+double** genStratifiedAntithetic2D3(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     int dimN = sqrt(N);
     double strataSizeX = (b-a)/dimN;
@@ -1619,9 +1720,25 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
         }
         ofs << avgError/(numTrials) << ",";
         avgError = 0;
+        //Uniform Jitter
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genUniformJitter2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
         //Stratified
         for (int i = 0; i < numTrials; i++) {
             temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genStratified2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Stratified (locally antithetic)
+        int tempN = max(8, (int) (sqrt(n/2)) * (int) (sqrt(n/2)) * 2);//will repeat last even for odd ns
+        //cout << "Temp: " << tempN << endl;
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, tempN, testFunc, genStratifiedAntithetic2D, gen);
             avgError += abs(temp-groundTruth);
         }
         ofs << avgError/(numTrials) << ",";
@@ -1642,11 +1759,26 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
         avgError = 0;
         //Halton
         for (int i = 0; i < 1; i++) {
-            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeqRot2D, gen);
-            cout << "error for n = " << n << " is " << abs(temp-groundTruth) << endl;
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeq2D, gen);
+            //cout << "error for n = " << n << " is " << abs(temp-groundTruth) << endl;
             avgError += abs(temp-groundTruth);
         }
-        ofs << avgError << endl;
+        ofs << avgError << ",";
+        avgError = 0;
+        //Halton antithetic
+        for (int i = 0; i < 1; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeqAntithetic2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError << ",";
+        avgError = 0;
+        //Halton rotated
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genHaltonSeqRot2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/numTrials << endl;
+        cout << "n = " << n << " done!\n";
     }
 }
 
@@ -1691,7 +1823,7 @@ int main(int argc, char** argv) {
     int imgWidth = 500;
     int imgHeight = 700;
     int numSamples = 50;
-    int numTrials = 200;
+    int numTrials = 500;
     int numLambdas = 10;
     double avgError = 0;
     double avgError2 = 0;
@@ -1713,9 +1845,9 @@ int main(int argc, char** argv) {
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
-    //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
-    //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
-    //printPoints2D(500,genPureMonteCarlo2D,gen);
+    //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
+    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    //printPoints2D(288,genStratifiedAntithetic2D,gen);
 
     
 }
