@@ -385,13 +385,8 @@ double** genStratifiedAntithetic2D(int N, double a, double b, double c, double d
     double strataSizeX = (b-a)/dimN;
     double strataSizeY = (d-c)/dimN;
     float strataOffset;
-    //cout << N << endl;
-    //cout << dimN << endl;
-    //cout << (dimN * dimN * 2) << endl;
     for (int i = 0; i < dimN; i++) {
         for (int j = 0; j < dimN; j++) {
-            //cout << (i * dimN + j) << endl;
-            //cout << (dimN * dimN * 2 - i * dimN - j - 1) << endl;
             seqArr[i * dimN + j] = new double[2];
             seqArr[dimN * dimN * 2 - (i * dimN + j) - 1] = new double[2];
             strataOffset = dist(gen);
@@ -407,17 +402,24 @@ double** genStratifiedAntithetic2D(int N, double a, double b, double c, double d
 
 //new
 //globally antithetic
+//not implemented yet
 double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     int dimN = sqrt(N);
     double strataSizeX = (b-a)/dimN;
     double strataSizeY = (d-c)/dimN;
     double** seqArr = new double*[dimN * dimN];
+    float strataOffset;
     for (int i = 0; i < dimN; i++) {
-        for (int j = 0; j < dimN; j++) {
+        for (int j = i; j < dimN; j++) {
             seqArr[i * dimN + j] = new double[2];
-            seqArr[i * dimN + j][0] = a + strataSizeX * (i + dist(gen));
-            seqArr[i * dimN + j][1] = c + strataSizeY * (j + dist(gen));
+            seqArr[j * dimN + i] = new double[2];
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][0] = a + strataSizeX * (i + strataOffset);
+            seqArr[j * dimN + i][0] = a + strataSizeX * (i + 1 - strataOffset);
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][1] = c + strataSizeY * (j + strataOffset);
+            seqArr[j * dimN + i][1] = c + strataSizeY * (j + 1 - strataOffset);
         }
     }
     return seqArr;
@@ -425,6 +427,7 @@ double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double 
 
 //new
 //locally and globally antithetic
+//not implemented yet
 double** genStratifiedAntithetic2D3(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     int dimN = sqrt(N);
@@ -1846,8 +1849,8 @@ int main(int argc, char** argv) {
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
-    //printPoints2D(288,genStratifiedAntithetic2D,gen);
+    //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    printPoints2D(144,genStratifiedAntithetic2D2,gen);
 
     
 }
