@@ -1752,9 +1752,22 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
         avgError = 0;
         //Stratified (locally antithetic)
         int tempN = max(8, (int) (sqrt(n/2)) * (int) (sqrt(n/2)) * 2);//will repeat last even for odd ns
-        //cout << "Temp: " << tempN << endl;
         for (int i = 0; i < numTrials; i++) {
             temp = estimateIntegral2D(0, 1, 0, 1, tempN, testFunc, genStratifiedAntithetic2D, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Stratified (globally antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, n, testFunc, genStratifiedAntithetic2D2, gen);
+            avgError += abs(temp-groundTruth);
+        }
+        ofs << avgError/(numTrials) << ",";
+        avgError = 0;
+        //Stratified (locally and globally antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            temp = estimateIntegral2D(0, 1, 0, 1, tempN, testFunc, genStratifiedAntithetic2D3, gen);
             avgError += abs(temp-groundTruth);
         }
         ofs << avgError/(numTrials) << ",";
@@ -1862,8 +1875,8 @@ int main(int argc, char** argv) {
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
-    printPoints2D(50,genStratifiedAntithetic2D3,gen);
+    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    //printPoints2D(50,genStratifiedAntithetic2D3,gen);
 
     
 }
