@@ -3,7 +3,7 @@ import numpy as np
 
 x, y = np.loadtxt('points.txt', delimiter=',', unpack=True)
 
-plt.plot(x, y, '.', label='Locally Antithetic Stratified')
+plt.plot(x, y, '.', label='Globally Antithetic Stratified')
 for i in range(13):
     plt.axvline(x=i/12, linestyle='--', color='red')
 
@@ -13,7 +13,7 @@ for i in range(13):
 #plt.yscale('log')
 #plt.xscale('log')
 
-plt.title('288 points')
+plt.title('144 points')
 plt.legend()
 plt.show()
 

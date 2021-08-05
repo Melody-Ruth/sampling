@@ -416,10 +416,10 @@ double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double 
             seqArr[j * dimN + i] = new double[2];
             strataOffset = dist(gen);
             seqArr[i * dimN + j][0] = a + strataSizeX * (i + strataOffset);
-            seqArr[j * dimN + i][0] = a + strataSizeX * (i + 1 - strataOffset);
+            seqArr[j * dimN + i][0] = b - strataSizeX * (i + strataOffset);
             strataOffset = dist(gen);
             seqArr[i * dimN + j][1] = c + strataSizeY * (j + strataOffset);
-            seqArr[j * dimN + i][1] = c + strataSizeY * (j + 1 - strataOffset);
+            seqArr[j * dimN + i][1] = d - strataSizeY * (j + strataOffset);
         }
     }
     return seqArr;
