@@ -402,7 +402,6 @@ double** genStratifiedAntithetic2D(int N, double a, double b, double c, double d
 
 //new
 //globally antithetic
-//not implemented yet
 double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     int dimN = sqrt(N);
@@ -430,15 +429,29 @@ double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double 
 //not implemented yet
 double** genStratifiedAntithetic2D3(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
-    int dimN = sqrt(N);
+    int dimN = sqrt(N/2);
+    double** seqArr = new double*[dimN * dimN * 2];
     double strataSizeX = (b-a)/dimN;
     double strataSizeY = (d-c)/dimN;
-    double** seqArr = new double*[dimN * dimN];
+    float strataOffset;
     for (int i = 0; i < dimN; i++) {
-        for (int j = 0; j < dimN; j++) {
+        for (int j = i; j < dimN; j++) {
             seqArr[i * dimN + j] = new double[2];
-            seqArr[i * dimN + j][0] = a + strataSizeX * (i + dist(gen));
-            seqArr[i * dimN + j][1] = c + strataSizeY * (j + dist(gen));
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1] = new double[2];
+            seqArr[j * dimN + i] = new double[2];
+            seqArr[dimN * dimN * 2 - (j * dimN + i) - 1] = new double[2];
+
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][0] = a + strataSizeX * (i + strataOffset);
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1][0] = a + strataSizeX * (i + 1 - strataOffset);
+            seqArr[j * dimN + i][0] = b - strataSizeX * (i + strataOffset);
+            seqArr[dimN * dimN * 2 - (j * dimN + i) - 1][0] = b - strataSizeX * (i + 1 - strataOffset);
+
+            strataOffset = dist(gen);
+            seqArr[i * dimN + j][1] = c + strataSizeY * (j + strataOffset);
+            seqArr[dimN * dimN * 2 - (i * dimN + j) - 1][1] = c + strataSizeY * (j + 1 - strataOffset);
+            seqArr[j * dimN + i][1] = d - strataSizeY * (j + strataOffset);
+            seqArr[dimN * dimN * 2 - (j * dimN + i) - 1][1] = d - strataSizeY * (j + 1 - strataOffset);
         }
     }
     return seqArr;
@@ -1850,7 +1863,7 @@ int main(int argc, char** argv) {
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
     //printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
-    printPoints2D(144,genStratifiedAntithetic2D2,gen);
+    printPoints2D(50,genStratifiedAntithetic2D3,gen);
 
     
 }
