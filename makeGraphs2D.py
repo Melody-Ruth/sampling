@@ -55,7 +55,7 @@ plt.xlabel('Number of Samples')
 plt.ylabel('Error')
 plt.title('2D convergence graphs')
 plt.legend()
-plt.savefig('basicGausStratAnt2D_v2.png')
+plt.savefig('GausWRTStd2D_temp.png')
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))

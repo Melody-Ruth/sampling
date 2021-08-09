@@ -102,6 +102,11 @@ double bilinear(double x, double y) {
     return x*y;
 }
 
+//Temp. TODO: change
+double gausWRTStd2D(double x, double y) {
+    return (x*x + y*y) * exp(-(x*x + y*y));
+}
+
 double radicalInverse(int base, int a) {
     //Could be optimized based on https://www.pbr-book.org/3ed-2018/Sampling_and_Reconstruction/The_Halton_Sampler, but currently isn't
     int temp;
@@ -1863,19 +1868,20 @@ int main(int argc, char** argv) {
     const double groundTruthStep2D = 1/M_PI;
     const double groundTruthGaussian = 0.55774628535;
     const double groundTruthBilinear = 0.25;
+    const double groundTruthGausWRTStd2D = 0.2830050407186509;//temp. TODO: change
 
     //cout << foo(1/8.0,0) << endl;
     //cout << estimateIntegralSimpsons1D(0,1,9,0,foo,gen);
-
+    //cout << estimateIntegral2D(0,1,0,1,81000000,gausWRTStd2D,genStratified2D,gen) << endl;
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
     //printRMSE2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
     //printVariance2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    //printError2D(256,1000,gaussian,groundTruthGaussian,gen);
+    //printRMSE2D(256,1000,gausWRTStd2D,groundTruthGausWRTStd2D,gen);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    printConvergenceRates2D(2,40,numTrials,gaussian,groundTruthGaussian,gen);
+    printConvergenceRates2D(2,40,numTrials,gausWRTStd2D,groundTruthGausWRTStd2D,gen);
     //printPoints2D(50,genStratifiedAntithetic2D3,gen);
 
     
