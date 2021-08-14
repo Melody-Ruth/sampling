@@ -107,6 +107,29 @@ double gausWRTStd2D(double x, double y) {
     return (x*x + y*y) * exp(-(x*x + y*y));
 }
 
+//derivative of gaussian w.r.t. mean
+//(specifically, derivative of exp(-((x-mux)^2 + y^2)) w.r.t. mux)
+double gausWRTMean2D(double x, double y, double mux) {
+    return 2 * (x - mux) * exp(-(x - mux) * (x-mux) - y * y);
+}
+
+double gausWRTMean2DGroundTruth(double a, double b, double c, double d, double mux) {
+    return 0.5 * sqrt(M_PI) * (exp(-(a-mux)*(a-mux)) - exp(-(b-mux)*(b-mux))) * (erf(d) - erf(c));
+}
+
+//derivative of gaussian w.r.t. mean divided by gaussian. (Used when importance sampling)
+//(specifically, derivative of exp(-((x-mux)^2 + y^2)) w.r.t. mux, divided by exp(-(x^2 + y^2)))
+double gausWRTMeanImp2D(double x, double y, double mux) {
+    return 2 * (x - mux) * exp(mux * (2*x - mux));
+}
+
+double gausWRTMeanImp2DGroundTruth(double a, double b, double c, double d, double mux) {
+    if (mux == 0) {
+        mux = 0.0000001;
+    }
+    return 0.5 * (d - c) * exp(-mux * mux) * (exp(2 * mux * b) * (2 * mux * b - 1 - 2 * mux * mux) - (2 * mux * a - 1 - 2 * mux * mux) * exp(2 * mux * a)) / (mux * mux);
+}
+
 double radicalInverse(int base, int a) {
     //Could be optimized based on https://www.pbr-book.org/3ed-2018/Sampling_and_Reconstruction/The_Halton_Sampler, but currently isn't
     int temp;
@@ -235,6 +258,12 @@ double* genAntitheticMonteCarlo1D(int N, double a, double b, mt19937 & gen) {
         seqArr[i] = dist(gen);
         seqArr[N-i-1] = b-(seqArr[i]-a);
     }
+    if (N == 10) {
+        for (int i = 0; i < N-1; i++) {
+            cout << seqArr[i] << ",";
+        }
+        cout << seqArr[N-1] << endl;
+    }
     return seqArr;
 }
 
@@ -259,6 +288,12 @@ double* genUniform1D(int N, double a, double b, mt19937 & gen) {
     double* seqArr = new double[N];
     for (int i = 0; i < N; i++) {
         seqArr[i] = a + strataSize/2 + i * strataSize;
+    }
+    if (N == 10) {
+        for (int i = 0; i < N-1; i++) {
+            cout << seqArr[i] << ",";
+        }
+        cout << seqArr[N-1] << endl;
     }
     return seqArr;
 }
@@ -431,7 +466,6 @@ double** genStratifiedAntithetic2D2(int N, double a, double b, double c, double 
 
 //new
 //locally and globally antithetic
-//not implemented yet
 double** genStratifiedAntithetic2D3(int N, double a, double b, double c, double d, mt19937 & gen) {
     uniform_real_distribution<> dist(0, 1);
     int dimN = sqrt(N/2);
@@ -576,7 +610,7 @@ double estimateIntegralSimpsons1D(double a, double b, int N, double lambda, func
             est += 4 * F(xVal,lambda);
         }
         //cout << xVal << endl;
-        cout << xVal << ", " << F(xVal,lambda) << endl;
+        //cout << xVal << ", " << F(xVal,lambda) << endl;
     }
     est *= stepSize / 3.0; 
     return est;
@@ -640,6 +674,23 @@ double estimateIntegral2D(double a, double b, double c, double d, int N, functio
     double temp;
     for (int i = 0; i < N; i++) {
         temp = F(samplePoints[i][0],samplePoints[i][1]);
+        estimate += temp;
+    }
+    estimate /= N;
+    estimate *= (b-a);
+    for (int i = 0; i < N; i++) {
+        delete samplePoints[i];
+    }
+    delete samplePoints;
+    return estimate;
+}
+
+double estimateIntegralLambda2D(double a, double b, double c, double d, int N, double lambda, function<double (double,double,double)> F, function<double** (int, double, double, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
+    double** samplePoints = sampleGen(N, a, b, c, d, gen);
+    double estimate = 0;
+    double temp;
+    for (int i = 0; i < N; i++) {
+        temp = F(samplePoints[i][0],samplePoints[i][1],lambda);
         estimate += temp;
     }
     estimate /= N;
@@ -1447,7 +1498,7 @@ void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight
 
 void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials, function<double (double,double)> testFunc, function<double (double, double, double)> groundTruthFunc, mt19937 & gen, double intervalStart, double intervalEnd) {
     double avgError = 0;
-    double temp;
+    double temp = 0;
     ofstream ofs("conv.txt", ios::out);
     //ofs << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
     for (int n = startN; n <= endN; n++) {
@@ -1471,6 +1522,7 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
             }
             //ofs << "trial done" << endl;
         }
+        cout << temp << endl;
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
         //Uniform
@@ -1480,6 +1532,7 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
                 avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
             }
         }
+        cout << temp << endl;
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
         //Uniform Jitter
@@ -1816,6 +1869,139 @@ void printConvergenceRates2D(int startN, int endN, int numTrials, function<doubl
     }
 }
 
+//Tests perfect square between startN^2 and endN^2, inclusive
+//partway done
+void printConvergenceRatesLambda2D(double a, double b, double c, double d, int startN, int endN, int numLambdas, int numTrials, function<double (double,double,double)> testFunc, function<double (double, double, double, double, double)> groundTruthFunc, mt19937 & gen) {
+    double avgError = 0;
+    double temp;
+    int n;
+    ofstream ofs("conv.txt", ios::out);
+    //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
+    for (int j = startN; j <= endN; j++) {
+        n = j * j;
+        ofs << n << ",";
+        avgError = 0;
+        //Monte Carlo
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genPureMonteCarlo2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Monte Carlo w/ antithetic sampling
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genAntitheticMonteCarlo2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Uniform
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genUniform2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Uniform Jitter
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genUniformJitter2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Stratified
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genStratified2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Stratified (locally antithetic)
+        int tempN = max(8, (int) (sqrt(n/2)) * (int) (sqrt(n/2)) * 2);//will repeat last even for odd ns
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, tempN, k, testFunc, genStratifiedAntithetic2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Stratified (globally antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genStratifiedAntithetic2D2, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Stratified (locally and globally antithetic)
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, tempN, k, testFunc, genStratifiedAntithetic2D3, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //N-Rooks
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genNRooks2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Multi-jitter
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genMultiJitter2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Halton
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genHaltonSeq2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Halton antithetic
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genHaltonSeqAntithetic2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << ",";
+        avgError = 0;
+        //Halton rotated
+        for (int i = 0; i < numTrials; i++) {
+            for (double k = a; k < b; k += (b-a)/numLambdas) {
+                temp = estimateIntegralLambda2D(a, b, c, d, n, k, testFunc, genHaltonSeqRot2D, gen);
+                avgError += abs(temp-groundTruthFunc(a,b,c,d,k));
+            }
+        }
+        ofs << avgError/(numTrials * numLambdas) << endl;
+        cout << "n = " << n << " done!\n";
+    }
+}
+
 void printPoints1D(int N, function<double* (int, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
     ofstream ofs("points.txt", ios::out);
     //cout << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
@@ -1849,6 +2035,43 @@ double foo(double x, double lambda) {
     return 4 / (1 + x*x);
 }
 
+void importanceSamplingDemo(mt19937 & gen) {
+    //Importance sampling demo
+    uniform_real_distribution<> dist(0,1);
+    double avg = 0;
+    double avgError = 0;
+
+    avgError = 0;
+    for (int j = 0; j < 100; j++) {
+        avg = 0;
+        for (int i = 0; i < 1000; i++) {
+            double x = dist(gen);
+            double u = log((exp(1) - 1) * x + 1);
+            avg += (exp(1) - 1) * u * u;
+        }
+
+        avg /= 1000;
+        avgError += (avg - exp(1) + 2);
+        //cout << avg << endl;
+    }
+    cout << avgError << endl;
+
+
+    avgError = 0;
+    for (int j = 0; j < 100; j++) {
+        avg = 0;
+        for (int i = 0; i < 1000; i++) {
+            double x = dist(gen);
+            avg += exp(x) * x * x;
+        }
+
+        avg /= 1000;
+        avgError += (avg - exp(1) + 2);
+        //cout << avg << endl;
+    }
+    cout << avgError << endl;
+}
+
 int main(int argc, char** argv) {
     cout.precision(12);
     string fileName = argv[1];
@@ -1858,7 +2081,7 @@ int main(int argc, char** argv) {
     int imgHeight = 700;
     int numSamples = 50;
     int numTrials = 500;
-    int numLambdas = 10;
+    int numLambdas = 100;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
@@ -1868,11 +2091,11 @@ int main(int argc, char** argv) {
     const double groundTruthStep2D = 1/M_PI;
     const double groundTruthGaussian = 0.55774628535;
     const double groundTruthBilinear = 0.25;
-    const double groundTruthGausWRTStd2D = 0.2830050407186509;//temp. TODO: change
+    const double groundTruthGausWRTStd2D = 0.2830050407186509;//for 0 to 1 and 0 to 1. temp. TODO: change
 
     //cout << foo(1/8.0,0) << endl;
     //cout << estimateIntegralSimpsons1D(0,1,9,0,foo,gen);
-    //cout << estimateIntegral2D(0,1,0,1,81000000,gausWRTStd2D,genStratified2D,gen) << endl;
+    //cout << estimateIntegral2D(-8,8,-8,8,81000000,gausWRTStd2D,genStratified2D,gen) << endl;
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
     //printRMSE2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
     //printVariance2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
@@ -1880,9 +2103,10 @@ int main(int argc, char** argv) {
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
-    //printConvergenceRates1D2Lambdas(6,150,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    printConvergenceRates2D(2,40,numTrials,gausWRTStd2D,groundTruthGausWRTStd2D,gen);
-    //printPoints2D(50,genStratifiedAntithetic2D3,gen);
-
+    //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
+    //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
+    //printConvergenceRates1D(6,10,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
+    printConvergenceRatesLambda2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
+    //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
     
 }
