@@ -17,6 +17,8 @@
         "xiosbase": "cpp",
         "xstring": "cpp",
         "xutility": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "tuple": "cpp",
+        "queue": "cpp"
     }
 }
