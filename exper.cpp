@@ -73,13 +73,23 @@ void getCoefs(double x1, double x3, function<double (double)> testFunc, double* 
     double Db = determinant(x1*x1, y1, 1, x2*x2, y2, 1, x3*x3, y3, 1);
     double Dc = determinant(x1*x1, x1, y1, x2*x2, x2, y2, x3*x3, x3, y3);
 
+    double a;
+    double b;
+    double c;
     if (D == 0) {
-        cout << endl << "Oh no!!" << endl << endl;
+        /*cout << endl << "Oh no!! x1: " << x1 << ", x2: " << x2 << ", x3: " << x3 << ", y1: " << y1 << ", y2: " << y3 << ", y3: " << y3 << endl << endl;
+        cout << "Matrix:\n";
+        cout << x1*x1 << " " << x1 << " " << 1 << endl << x2*x2 << " " << x2 << " " << 1 << endl << x3*x3 << " " << x3 << " " << 1 << endl;*/
+        //Just do a constant line
+        //cout << endl << "Oh no!! x1: " << x1 << ", x2: " << x2 << ", x3: " << x3 << ", y1: " << y1 << ", y2: " << y3 << ", y3: " << y3 << endl << endl;
+        a = 0;
+        b = 0;
+        c = y2;
+    } else {
+        a = Da / D;
+        b = Db / D;
+        c = Dc / D;
     }
-    
-    double a = Da / D;
-    double b = Db / D;
-    double c = Dc / D;
 
     //cout << x1 << " to " << x3 << endl;
     //cout << a << ", " << b << ", " << c << endl;
@@ -173,7 +183,8 @@ double primaryFoo2(double x) {
 }
 
 int regionsBudget = 30000;
-const double epsilon = 0.00001;
+//const double epsilon = 0.00001;
+const double epsilon = 0.001;
 
 double miniSimpsons(double intervalStart, double intervalEnd, function<double (double)> testFunc) {
     return (testFunc(intervalStart) + 4 * testFunc((intervalStart + intervalEnd) / 2.0) + testFunc(intervalEnd)) * (intervalEnd - intervalStart) / 6.0;
@@ -273,23 +284,34 @@ long double groundTruth = 0.812835882622424311126150;//From wolfram alpha
 int main() {
     random_device r;
     mt19937 gen(r());
+    uniform_real_distribution<> dist1(0, 1);
+    uniform_real_distribution<> dist2(1, 70);
 
     cout.precision(20);
     double temp [3];
     getCoefs(0, 1, foo,temp);
     cout << temp[0] << ", " << temp[1] << ", " << temp[2] << endl;
     //cout << determinant(2, 3, 7, -5, 23, 10, 4, 5, -1);
-    regionsBudget = 25;
-    double** myRegions = splitRegions(foo);
+    regionsBudget = 80;
+    fooCoefs[0] = dist1(gen);
+    fooCoefs[2] = dist1(gen);
+    fooCoefs[4] = dist1(gen);
+    fooCoefs[6] = dist1(gen);
+    fooCoefs[1] = dist2(gen);
+    fooCoefs[3] = dist2(gen);
+    fooCoefs[5] = dist2(gen);
+    fooCoefs[7] = dist2(gen);
+    double** myRegions = splitRegions(foo2);
 
-    /*for (int i = 0; i < regionsBudget; i++) {
+    cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
+    for (int i = 0; i < regionsBudget; i++) {
         cout << "[";
         for (int j = 0; j < 4; j++) {
             cout << myRegions[i][j] << ", ";
         }
         cout << myRegions[i][4];
         cout << "]," << endl;
-    }*/
+    }
 
     for (double j = 1.5; j < 8; j += 0.05) {
         if ((int) exp(j) == (int) exp(j-0.05)) {
@@ -302,9 +324,7 @@ int main() {
     cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     cout << fooIntegralGroundTruth2() << endl;
 
-    uniform_real_distribution<> dist1(0, 1);
-    uniform_real_distribution<> dist2(1, 70);
-    int numRandomCoefs = 10;
+    int numRandomCoefs = 100;
     
     for (double j = 1.5; j < 8; j += 0.05) {
         if ((int) exp(j) == (int) exp(j-0.05)) {
@@ -327,8 +347,8 @@ int main() {
             RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
             
             if (regionsBudget == 134) {
-                cout << endl << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
-                cout << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << " versus " << fooIntegralGroundTruth2() << endl;
+                //cout << endl << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
+                // << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << " versus " << fooIntegralGroundTruth2() << endl;
             }
         }
         RMSE /= numRandomCoefs;
