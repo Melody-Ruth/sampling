@@ -321,8 +321,8 @@ int main() {
     }
     cout << endl;
 
-    cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
-    cout << fooIntegralGroundTruth2() << endl;
+    //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
+    //cout << fooIntegralGroundTruth2() << endl;
 
     int numRandomCoefs = 100;
     
@@ -333,6 +333,7 @@ int main() {
         regionsBudget = (int) exp(j);
         //cout << regionsBudget << endl;
         double RMSE = 0;
+        cout << "j: " << j << endl;
         for (int i = 0; i < numRandomCoefs; i++) {
             fooCoefs[0] = dist1(gen);
             fooCoefs[2] = dist1(gen);
@@ -346,8 +347,10 @@ int main() {
             myRegions = splitRegions(primaryFoo2);
             RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
             
-            if (regionsBudget == 134) {
+            if (j < 1.7 && i < 20) {
+                //cout << "hi\n";
                 //cout << endl << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
+                cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
                 // << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << " versus " << fooIntegralGroundTruth2() << endl;
             }
         }
@@ -358,7 +361,7 @@ int main() {
         RMSE = sqrt(RMSE);
         //cout << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << endl;
         //cout << abs(polyApproxEst(myRegions)-groundTruth) << ",";
-        cout << RMSE << ",";
+        //cout << RMSE << ",";
     }
     cout << endl;
     //cout << polyApproxEst(myRegions) << endl;
