@@ -195,7 +195,8 @@ double miniTrapezoidal(double intervalStart, double intervalEnd, function<double
 }
 
 double estimateError(double intervalStart, double intervalEnd, function<double (double)> testFunc) {
-    return abs(miniSimpsons(intervalStart, intervalEnd, testFunc) - miniTrapezoidal(intervalStart, intervalEnd, testFunc)) + epsilon * (intervalEnd - intervalStart);
+    //return abs(miniSimpsons(intervalStart, intervalEnd, testFunc) - miniTrapezoidal(intervalStart, intervalEnd, testFunc)) + epsilon * (intervalEnd - intervalStart);
+    return (intervalEnd - intervalStart);
 }
 
 double a = 0;
@@ -279,6 +280,22 @@ double polyApproxEst(double** regions) {
     return estimate;
 }
 
+double residual(double x, double** regions, function<double (double)> testFunc) {
+    return testFunc(x) - polyApprox(x,regions);
+}
+
+//pure monte carlo estimate of the original integral using the polynomial as a control variate
+double residualMCEst(double** regions, function<double (double)> testFunc, double numSamples, mt19937 gen) {
+    double est = 0;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < numSamples; i++) {
+        est += residual(dist(gen),regions,testFunc);
+    }
+    est /= numSamples;
+    est += polyApproxEst(regions);
+    return est;
+}
+
 long double groundTruth = 0.812835882622424311126150;//From wolfram alpha
 
 int main() {
@@ -292,7 +309,7 @@ int main() {
     getCoefs(0, 1, foo,temp);
     cout << temp[0] << ", " << temp[1] << ", " << temp[2] << endl;
     //cout << determinant(2, 3, 7, -5, 23, 10, 4, 5, -1);
-    regionsBudget = 80;
+    regionsBudget = 25;
     fooCoefs[0] = dist1(gen);
     fooCoefs[2] = dist1(gen);
     fooCoefs[4] = dist1(gen);
@@ -301,9 +318,9 @@ int main() {
     fooCoefs[3] = dist2(gen);
     fooCoefs[5] = dist2(gen);
     fooCoefs[7] = dist2(gen);
-    double** myRegions = splitRegions(foo2);
+    double** myRegions = splitRegions(foo);
 
-    cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
+    //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     for (int i = 0; i < regionsBudget; i++) {
         cout << "[";
         for (int j = 0; j < 4; j++) {
@@ -313,27 +330,29 @@ int main() {
         cout << "]," << endl;
     }
 
-    for (double j = 1.5; j < 8; j += 0.05) {
+    for (double j = 1.5; j < 7.5; j += 0.05) {
         if ((int) exp(j) == (int) exp(j-0.05)) {
             continue;
         }
-        cout << ((int) exp(j)) << ",";
+        cout << (((int) exp(j)) * 2 + 1) << ",";
     }
     cout << endl;
 
     //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     //cout << fooIntegralGroundTruth2() << endl;
 
-    int numRandomCoefs = 100;
+    int numRandomCoefs = 1000;
     
-    for (double j = 1.5; j < 8; j += 0.05) {
+    for (double j = 1.5; j < 7.5; j += 0.05) {
         if ((int) exp(j) == (int) exp(j-0.05)) {
             continue;
         }
         regionsBudget = (int) exp(j);
+        //Remove later:
+        regionsBudget /= 2;
         //cout << regionsBudget << endl;
         double RMSE = 0;
-        cout << "j: " << j << endl;
+        //cout << "j: " << j << endl;
         for (int i = 0; i < numRandomCoefs; i++) {
             fooCoefs[0] = dist1(gen);
             fooCoefs[2] = dist1(gen);
@@ -344,13 +363,14 @@ int main() {
             fooCoefs[5] = dist2(gen);
             fooCoefs[7] = dist2(gen);
             
-            myRegions = splitRegions(primaryFoo2);
-            RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
+            myRegions = splitRegions(foo2);
+            //RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
+            RMSE += pow(residualMCEst(myRegions,foo2,2*regionsBudget+1,gen)-fooIntegralGroundTruth2(),2);
             
             if (j < 1.7 && i < 20) {
                 //cout << "hi\n";
                 //cout << endl << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
-                cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
+                //cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
                 // << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << " versus " << fooIntegralGroundTruth2() << endl;
             }
         }
@@ -361,7 +381,7 @@ int main() {
         RMSE = sqrt(RMSE);
         //cout << ((int) exp(j)) << ": " << polyApproxEst(myRegions) << endl;
         //cout << abs(polyApproxEst(myRegions)-groundTruth) << ",";
-        //cout << RMSE << ",";
+        cout << RMSE << ",";
     }
     cout << endl;
     //cout << polyApproxEst(myRegions) << endl;
