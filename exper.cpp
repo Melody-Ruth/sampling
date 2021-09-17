@@ -34,6 +34,7 @@ double polyInt(double start, double end, double a, double b, double c) {
 
 
 double fooCoefs[8] = {0.2,100,0.1,40,0.15,30,0.5,20};
+double discontX = 1;
 
 double foo(double x) {
     return 0.2 * sin(100*x) + 0.1 * sin(40*x) - 2 * (x - 0.6) * (x-0.6) + 0.15 * cos(30*x) + 1;
@@ -42,7 +43,7 @@ double foo(double x) {
 
 //customizable version of the test function
 double foo2(double x) {
-    return fooCoefs[0] * sin(fooCoefs[1] * x) + fooCoefs[2] * sin(fooCoefs[3] * x) + fooCoefs[4] * cos(fooCoefs[5] * x) + fooCoefs[6] * cos(fooCoefs[7] * x);
+    return (x < discontX) * (fooCoefs[0] * sin(fooCoefs[1] * x) + fooCoefs[2] * sin(fooCoefs[3] * x) + fooCoefs[4] * cos(fooCoefs[5] * x) + fooCoefs[6] * cos(fooCoefs[7] * x));
 }
 
 long double fooIntegralGroundTruth2() {
@@ -53,10 +54,10 @@ long double fooIntegralGroundTruth2() {
     //cout << "Part 3: " << (fooCoefs[4] * sin(fooCoefs[5] * 1) / fooCoefs[5] - fooCoefs[4] * sin(fooCoefs[5] * 0) / fooCoefs[5]) << endl;
     //cout << "Part 4: " << (fooCoefs[6] * sin(fooCoefs[7] * 1) / fooCoefs[7] - fooCoefs[6] * sin(fooCoefs[7] * 0) / fooCoefs[7]) << endl;
     result = 0;
-    result += (-fooCoefs[0] * cos(fooCoefs[1] * 1) / fooCoefs[1] + fooCoefs[0] * cos(fooCoefs[1] * 0) / fooCoefs[1]);
-    result += (-fooCoefs[2] * cos(fooCoefs[3] * 1) / fooCoefs[3] + fooCoefs[2] * cos(fooCoefs[3] * 0) / fooCoefs[3]);
-    result += (fooCoefs[4] * sin(fooCoefs[5] * 1) / fooCoefs[5] - fooCoefs[4] * sin(fooCoefs[5] * 0) / fooCoefs[5]);
-    result += (fooCoefs[6] * sin(fooCoefs[7] * 1) / fooCoefs[7] - fooCoefs[6] * sin(fooCoefs[7] * 0) / fooCoefs[7]);
+    result += (-fooCoefs[0] * cos(fooCoefs[1] * discontX) / fooCoefs[1] + fooCoefs[0] * cos(fooCoefs[1] * 0) / fooCoefs[1]);
+    result += (-fooCoefs[2] * cos(fooCoefs[3] * discontX) / fooCoefs[3] + fooCoefs[2] * cos(fooCoefs[3] * 0) / fooCoefs[3]);
+    result += (fooCoefs[4] * sin(fooCoefs[5] * discontX) / fooCoefs[5] - fooCoefs[4] * sin(fooCoefs[5] * 0) / fooCoefs[5]);
+    result += (fooCoefs[6] * sin(fooCoefs[7] * discontX) / fooCoefs[7] - fooCoefs[6] * sin(fooCoefs[7] * 0) / fooCoefs[7]);
     return result;
 }
 
@@ -183,8 +184,8 @@ double primaryFoo2(double x) {
 }
 
 int regionsBudget = 30000;
-//const double epsilon = 0.00001;
-const double epsilon = 0.001;
+const double epsilon = 0.00001;
+//const double epsilon = 5;
 
 double miniSimpsons(double intervalStart, double intervalEnd, function<double (double)> testFunc) {
     return (testFunc(intervalStart) + 4 * testFunc((intervalStart + intervalEnd) / 2.0) + testFunc(intervalEnd)) * (intervalEnd - intervalStart) / 6.0;
@@ -195,8 +196,12 @@ double miniTrapezoidal(double intervalStart, double intervalEnd, function<double
 }
 
 double estimateError(double intervalStart, double intervalEnd, function<double (double)> testFunc) {
-    //return abs(miniSimpsons(intervalStart, intervalEnd, testFunc) - miniTrapezoidal(intervalStart, intervalEnd, testFunc)) + epsilon * (intervalEnd - intervalStart);
-    return (intervalEnd - intervalStart);
+    /*if (regionsBudget > 20) {
+        cout << "error part: " << abs(miniSimpsons(intervalStart, intervalEnd, testFunc) - miniTrapezoidal(intervalStart, intervalEnd, testFunc)) << endl;
+        cout << "Interval: " << (intervalEnd - intervalStart) << endl;
+    }*/
+    return abs(miniSimpsons(intervalStart, intervalEnd, testFunc) - miniTrapezoidal(intervalStart, intervalEnd, testFunc)) + epsilon * (intervalEnd - intervalStart);
+    //return (intervalEnd - intervalStart);
 }
 
 double a = 0;
@@ -248,6 +253,18 @@ double** splitRegions(function<double (double)> testFunc) {
 
     qsort(regions, regionsBudget, sizeof(regions[0]), compareArr);
 
+    return regions;
+}
+
+double** splitRegionsEvenly(function<double (double)> testFunc) {
+    double** regions = new double*[regionsBudget];
+    double regionSize = 1.0 / regionsBudget;
+    for (int i = 0; i < regionsBudget; i++) {
+        regions[i] = new double[5];
+        regions[i][0] = i * regionSize;
+        regions[i][1] = (i + 1) * regionSize;
+        getCoefs(regions[i][0], regions[i][1], testFunc, &regions[i][2]);
+    }
     return regions;
 }
 
@@ -309,7 +326,7 @@ int main() {
     getCoefs(0, 1, foo,temp);
     cout << temp[0] << ", " << temp[1] << ", " << temp[2] << endl;
     //cout << determinant(2, 3, 7, -5, 23, 10, 4, 5, -1);
-    regionsBudget = 25;
+    regionsBudget = 70;
     fooCoefs[0] = dist1(gen);
     fooCoefs[2] = dist1(gen);
     fooCoefs[4] = dist1(gen);
@@ -318,8 +335,8 @@ int main() {
     fooCoefs[3] = dist2(gen);
     fooCoefs[5] = dist2(gen);
     fooCoefs[7] = dist2(gen);
-    double** myRegions = splitRegions(foo);
-
+    double** myRegions = splitRegions(foo2);
+    cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
     //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     for (int i = 0; i < regionsBudget; i++) {
         cout << "[";
@@ -362,10 +379,12 @@ int main() {
             fooCoefs[3] = dist2(gen);
             fooCoefs[5] = dist2(gen);
             fooCoefs[7] = dist2(gen);
+            discontX = dist1(gen);
             
-            myRegions = splitRegions(foo2);
-            //RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
-            RMSE += pow(residualMCEst(myRegions,foo2,2*regionsBudget+1,gen)-fooIntegralGroundTruth2(),2);
+            myRegions = splitRegionsEvenly(foo2);
+           // RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
+            RMSE += pow(polyApproxEst(myRegions)-fooIntegralGroundTruth2(), 2);
+            //RMSE += pow(residualMCEst(myRegions,foo2,2*regionsBudget+1,gen)-fooIntegralGroundTruth2(),2);
             
             if (j < 1.7 && i < 20) {
                 //cout << "hi\n";
