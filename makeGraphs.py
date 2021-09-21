@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, poa = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
@@ -16,6 +16,8 @@ logHa = np.log(ha, out=np.zeros_like(ha), where=(ha!=0))
 logHaro = np.log(haro, out=np.zeros_like(haro), where=(haro!=0))
 logHaan = np.log(haan, out=np.zeros_like(haan), where=(haan!=0))
 logSi = np.log(si, out=np.zeros_like(si), where=(si!=0))
+logPo = np.log(po, out=np.zeros_like(po), where=(po!=0))
+logPoa = np.log(poa, out=np.zeros_like(poa), where=(poa!=0))
 
 m, b = np.polyfit(logN, logMc, 1)
 plt.plot(N, mc, linestyle='-', marker='.', label='Pure Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
@@ -40,7 +42,11 @@ m, b = np.polyfit(logN, logHaro, 1)
 m, b = np.polyfit(logN, logHaan, 1)
 plt.plot(N, haan, linestyle='-', marker='.', label='Halton, antithetic, (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logSi, 1)
-#plt.plot(N, si, linestyle='-', marker='.', label='Simpson\'s rule (approx rate: '+"{:.4f}".format(m)+')')
+plt.plot(N, si, linestyle='-', marker='.', label='Simpson\'s rule (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logPo, 1)
+plt.plot(N, po, linestyle='-', marker='.', label='(Adaptive) polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
+m, b = np.polyfit(logN, logPoa, 1)
+plt.plot(N, poa, linestyle='-', marker='.', label='(Adaptive) polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
 plt.yscale('log')
 plt.xscale('log')
 

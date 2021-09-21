@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 #include <fstream> 
+#include <queue>
 #include <bits/stdc++.h>
 #include <complex.h>
 #include <algorithm>    //For random_shuffle
@@ -19,6 +20,7 @@ struct sampleSet1D {
 };*/
 
 const int primes[10] = {2,3,5,7,11,13,17,19,23,29};
+const double epsilon = 0.00001;
 
 //TODO: change
 double standardDeviation = sqrt(0.05);
@@ -668,6 +670,150 @@ double estimateIntegralSimpsons2Lambdas1D(double a, double b, int N, double lamb
     return est;
 }
 
+//Poly Approx start
+
+double determinant(double a, double b, double c, double d, double e, double f, double g, double h, double i) {
+    return a * (e*i - h*f) - b * (d*i - g*f) + c * (d*h - g*e);
+}
+
+int compareArr(const void * arr1, const void * arr2) {
+    return (((double**) arr1)[0][0] > ((double**) arr2)[0][0]) - (((double**) arr1)[0][0] < ((double**) arr2)[0][0]);
+}
+
+//Returns the integral from x=start to x=end of f(x) = ax^2 + bx + c
+double polyInt(double start, double end, double a, double b, double c) {
+    a /= 3;
+    b /= 2;
+    double integral = 0;
+    integral += a * end * end * end;
+    integral += b * end * end;
+    integral += c * end;
+    integral -= a * start * start * start;
+    integral -= b * start * start;
+    integral -= c * start;
+    return integral;
+}
+
+double miniSimpsons(double intervalStart, double intervalEnd, function<double (double, double)> testFunc, double lambda) {
+    return (testFunc(intervalStart, lambda) + 4 * testFunc((intervalStart + intervalEnd) / 2.0, lambda) + testFunc(intervalEnd, lambda)) * (intervalEnd - intervalStart) / 6.0;
+}
+
+double miniTrapezoidal(double intervalStart, double intervalEnd, function<double (double, double)> testFunc, double lambda) {
+    return (intervalEnd - intervalStart) * (testFunc(intervalEnd, lambda) + testFunc(intervalStart, lambda)) / 2.0;
+}
+
+double estimateError(double intervalStart, double intervalEnd, function<double (double, double)> testFunc, double lambda) {
+    return abs(miniSimpsons(intervalStart, intervalEnd, testFunc, lambda) - miniTrapezoidal(intervalStart, intervalEnd, testFunc, lambda)) + epsilon * (intervalEnd - intervalStart);
+}
+
+void getCoefs(double x1, double x3, function<double (double, double)> testFunc, double* coefs, double lambda) {
+    //quadratic approximation
+    double x2 = (x1 + x3) / 2.0;
+    double y1 = testFunc(x1, lambda);
+    double y2 = testFunc(x2, lambda);
+    double y3 = testFunc(x3, lambda);
+
+    double D = determinant(x1*x1, x1, 1, x2*x2, x2, 1, x3*x3, x3, 1);
+    double Da = determinant(y1, x1, 1, y2, x2, 1, y3, x3, 1);
+    double Db = determinant(x1*x1, y1, 1, x2*x2, y2, 1, x3*x3, y3, 1);
+    double Dc = determinant(x1*x1, x1, y1, x2*x2, x2, y2, x3*x3, x3, y3);
+
+    double a;
+    double b;
+    double c;
+    if (D == 0) {
+        //Just do a constant line
+        a = 0;
+        b = 0;
+        c = y2;
+    } else {
+        a = Da / D;
+        b = Db / D;
+        c = Dc / D;
+    }
+
+    if (isinf(a)) {
+        cout << "What????" << endl;
+    }
+    coefs[0] = a;
+    coefs[1] = b;
+    coefs[2] = c;
+}
+
+double** splitRegions(function<double (double, double)> testFunc, int regionsBudget, double lambda, double a, double b) {
+    double** regions = new double*[regionsBudget];
+    for (int i = 0; i < regionsBudget; i++) {
+        regions[i] = new double[5];
+    }
+    int numRegions = 1;
+    tuple<double, double, double> curr;
+    priority_queue<tuple<double, double, double>> myHeap;
+    //Each tuple has error estimate, startX, stopX
+    myHeap.push(tuple<double, double, double>(estimateError(a, b, testFunc, lambda),a,b));
+    double start, end, mid;
+    while (numRegions < regionsBudget) {
+        curr = myHeap.top();
+        start = get<1>(curr);
+        end = get<2>(curr);
+        mid = (start + end) / 2;
+        myHeap.pop();
+        myHeap.push(tuple<double, double, double>(estimateError(start, mid, testFunc, lambda), start, mid));
+        myHeap.push(tuple<double, double, double>(estimateError(mid, end, testFunc, lambda), mid, end));
+        numRegions++;
+    }
+    for (int i = 0; i < regionsBudget; i++) {
+        curr = myHeap.top();
+        regions[i][0] = get<1>(curr);
+        regions[i][1] = get<2>(curr);
+        myHeap.pop();
+        getCoefs(regions[i][0], regions[i][1], testFunc, &regions[i][2], lambda);
+    }
+    qsort(regions, regionsBudget, sizeof(regions[0]), compareArr);
+    return regions;
+}
+
+double** splitRegionsEvenly(function<double (double, double)> testFunc, int regionsBudget, double lambda, double a, double b) {
+    double** regions = new double*[regionsBudget];
+    double regionSize = 1.0 / regionsBudget;
+    for (int i = 0; i < regionsBudget; i++) {
+        regions[i] = new double[5];
+        regions[i][0] = i * regionSize;
+        regions[i][1] = (i + 1) * regionSize;
+        getCoefs(regions[i][0], regions[i][1], testFunc, &regions[i][2], lambda);
+    }
+    return regions;
+}
+
+double polyApproxEst(double** regions, double regionsBudget) {
+    double estimate = 0;
+    for (int i = 0; i < regionsBudget; i++) {
+        estimate += polyInt(regions[i][0], regions[i][1], regions[i][2], regions[i][3], regions[i][4]);
+        if (isnan(estimate) && regionsBudget == 134) {
+            cout << "Estimate is no longer a number!\n";
+            cout << regions[i][0] << ", " << regions[i][1] << ", " << regions[i][2] << ", " << regions[i][3] << ", " << regions[i][4] << endl;
+        }
+    }
+    return estimate;
+}
+
+double estimateIntegralPolyApprox(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N-1)/2;
+    double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
+    double result = polyApproxEst(myRegions, regionsBudget);
+    delete myRegions;
+    return result;
+}
+
+double estimateIntegralAdapPolyApprox(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N-1)/2;
+    double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
+    double result = polyApproxEst(myRegions, regionsBudget);
+    delete myRegions;
+    return result;
+}
+
+//Poly Approx end
+
 double estimateIntegral2Lambdas1D(double a, double b, int N, double lambda1, double lambda2, function<double (double,double,double)> F, function<double* (int, double, double, mt19937 &)> sampleGen, mt19937 & gen) {
     double* samplePoints = sampleGen(N, a, b, gen);
     double estimate = 0;
@@ -977,6 +1123,16 @@ void printRMSE1D(int numLambdas, int numSamples, int numTrials, function<double 
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
             temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, gen);
+            avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numTrials*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Adaptive Polynomial Approximation:\n";
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegralPolyApprox(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, gen);
+            //temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, numSamples, j/numLambdas, testFunc, gen);
             avgError += (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, intervalStart, intervalEnd));
         }
     }
@@ -1575,7 +1731,7 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
             }
             //ofs << "trial done" << endl;
         }
-        cout << temp << endl;
+        //cout << temp << endl;
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
         //Uniform
@@ -1585,7 +1741,7 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
                 avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
             }
         }
-        cout << temp << endl;
+        //cout << temp << endl;
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
         //Uniform Jitter
@@ -1664,6 +1820,22 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
                 temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, j, testFunc, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        //Poly approx Rule
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, j, testFunc, gen);
+                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        //Poly approx Rule (adaptive)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                temp = estimateIntegralAdapPolyApprox(intervalStart, intervalEnd, n, j, testFunc, gen);
                 avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
             }
         }
@@ -2261,10 +2433,11 @@ int main(int argc, char** argv) {
     string fileName = argv[1];
     random_device r;
     mt19937 gen(r());
+    //cout << "Hmmm\n";
     int imgWidth = 500;
     int imgHeight = 700;
     int numSamples = 50;
-    int numTrials = 500;
+    int numTrials = 5000;
     int numLambdas = 100;
     double avgError = 0;
     double avgError2 = 0;
@@ -2283,13 +2456,14 @@ int main(int argc, char** argv) {
     //makeIntensityStrips(numLambdas,numSamples,numTrials,imgWidth,imgHeight,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,fileName);
     //printRMSE2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
     //printVariance2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
-    printRMSE1D(1,10,10000000,tempFoo,tempFooGroundTruth,gen,0,1);
+    //cout << "So far so good????\n";
+    //printRMSE1D(1,10,1000000,tempFoo,tempFooGroundTruth,gen,0,1);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
     //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
-    //printConvergenceRates1D(6,10,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
+    printConvergenceRates1D(6,40,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
     //printConvergenceRatesLambdaImp2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
     //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
     

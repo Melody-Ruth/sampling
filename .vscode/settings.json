@@ -19,6 +19,7 @@
         "xutility": "cpp",
         "iterator": "cpp",
         "tuple": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "fstream": "cpp"
     }
 }

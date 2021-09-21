@@ -9,9 +9,6 @@
 
 using namespace std;
 
-double determinant(double a, double b, double c, double d, double e, double f, double g, double h, double i) {
-    return a * (e*i - h*f) - b * (d*i - g*f) + c * (d*h - g*e);
-}
 
 //Returns the integral from x=start to x=end of f(x) = ax^2 + bx + c
 double polyInt(double start, double end, double a, double b, double c) {
@@ -32,9 +29,11 @@ double polyInt(double start, double end, double a, double b, double c) {
     return integral;
 }
 
+//foo is the function to test
 
 double fooCoefs[8] = {0.2,100,0.1,40,0.15,30,0.5,20};
 double discontX = 1;
+double fooExpCoefs[2] = {1,0};
 
 double foo(double x) {
     return 0.2 * sin(100*x) + 0.1 * sin(40*x) - 2 * (x - 0.6) * (x-0.6) + 0.15 * cos(30*x) + 1;
@@ -43,7 +42,12 @@ double foo(double x) {
 
 //customizable version of the test function
 double foo2(double x) {
-    return (x < discontX) * (fooCoefs[0] * sin(fooCoefs[1] * x) + fooCoefs[2] * sin(fooCoefs[3] * x) + fooCoefs[4] * cos(fooCoefs[5] * x) + fooCoefs[6] * cos(fooCoefs[7] * x));
+    //return (x < discontX) * (fooCoefs[0] * sin(fooCoefs[1] * x) + fooCoefs[2] * sin(fooCoefs[3] * x) + fooCoefs[4] * cos(fooCoefs[5] * x) + fooCoefs[6] * cos(fooCoefs[7] * x));
+    return (x < discontX) * (fooCoefs[0] * sin(fooCoefs[1] * x) + fooCoefs[2] * sin(fooCoefs[3] * x)) + fooCoefs[4] * cos(fooCoefs[5] * x) + fooCoefs[6] * cos(fooCoefs[7] * x);
+}
+
+double fooExp(double x) {
+    return exp(fooExpCoefs[0] * x + fooExpCoefs[1]);
 }
 
 long double fooIntegralGroundTruth2() {
@@ -56,11 +60,17 @@ long double fooIntegralGroundTruth2() {
     result = 0;
     result += (-fooCoefs[0] * cos(fooCoefs[1] * discontX) / fooCoefs[1] + fooCoefs[0] * cos(fooCoefs[1] * 0) / fooCoefs[1]);
     result += (-fooCoefs[2] * cos(fooCoefs[3] * discontX) / fooCoefs[3] + fooCoefs[2] * cos(fooCoefs[3] * 0) / fooCoefs[3]);
-    result += (fooCoefs[4] * sin(fooCoefs[5] * discontX) / fooCoefs[5] - fooCoefs[4] * sin(fooCoefs[5] * 0) / fooCoefs[5]);
-    result += (fooCoefs[6] * sin(fooCoefs[7] * discontX) / fooCoefs[7] - fooCoefs[6] * sin(fooCoefs[7] * 0) / fooCoefs[7]);
+    result += (fooCoefs[4] * sin(fooCoefs[5] * 1) / fooCoefs[5] - fooCoefs[4] * sin(fooCoefs[5] * 0) / fooCoefs[5]);
+    result += (fooCoefs[6] * sin(fooCoefs[7] * 1) / fooCoefs[7] - fooCoefs[6] * sin(fooCoefs[7] * 0) / fooCoefs[7]);
     return result;
 }
 
+long double fooExpIntegralGroundTruth() {
+    long double result = 0;
+    result += exp(fooExpCoefs[0] * 1 + fooExpCoefs[1]) / fooExpCoefs[0];
+    result -= exp(fooExpCoefs[0] * 0 + fooExpCoefs[1]) / fooExpCoefs[0];
+    return result;
+}
 
 void getCoefs(double x1, double x3, function<double (double)> testFunc, double* coefs) {
     //quadratic approximation
@@ -118,6 +128,17 @@ double pdf2(double x) {
     return pdfCoefs[0] * x * x + pdfCoefs[1] * x + pdfCoefs[2];
 }
 
+double pdfExp(double x) {
+    double pdfCoefs[3];
+    getCoefs(0,1,fooExp,pdfCoefs);
+    double tempIntegral = polyInt(0,1,pdfCoefs[0],pdfCoefs[1],pdfCoefs[2]);
+    //We want the integral to be 1 (so it's a pdf)
+    pdfCoefs[0] /= tempIntegral;
+    pdfCoefs[1] /= tempIntegral;
+    pdfCoefs[2] /= tempIntegral;
+    return pdfCoefs[0] * x * x + pdfCoefs[1] * x + pdfCoefs[2];
+}
+
 double cdf(double x) {
     return -0.595 * x * x * x + 1.05 * x * x + 0.546 * x;
 }
@@ -126,6 +147,17 @@ double cdf(double x) {
 double cdf2(double x) {
     double pdfCoefs[3];
     getCoefs(0,1,foo2,pdfCoefs);
+    double tempIntegral = polyInt(0,1,pdfCoefs[0],pdfCoefs[1],pdfCoefs[2]);
+    //We want the integral to be 1 (so it's a pdf)
+    pdfCoefs[0] /= tempIntegral;
+    pdfCoefs[1] /= tempIntegral;
+    pdfCoefs[2] /= tempIntegral;
+    return polyInt(0,x,pdfCoefs[0],pdfCoefs[1],pdfCoefs[2]);
+}
+
+double cdfExp(double x) {
+    double pdfCoefs[3];
+    getCoefs(0,1,fooExp,pdfCoefs);
     double tempIntegral = polyInt(0,1,pdfCoefs[0],pdfCoefs[1],pdfCoefs[2]);
     //We want the integral to be 1 (so it's a pdf)
     pdfCoefs[0] /= tempIntegral;
@@ -173,6 +205,25 @@ double invCdf2(double x) {
     return tempY;
 }
 
+double invCdfExp(double x) {
+    double start = 0;
+    double end = 1.0;
+    double tempY = (start + end) / 2;
+    double tempX = cdfExp(tempY);
+    double count = 0;
+    while (count < 250 && abs(tempX - x) > 0.0001) {
+        tempY = (start + end) / 2;
+        tempX = cdfExp(tempY);
+        if (tempX > x) {
+            end = tempY;
+        } else {
+            start = tempY;
+        }
+        count ++;
+    }
+    return tempY;
+}
+
 //Foo in primary space
 double primaryFoo(double x) {
     return foo(invCdf(x)) / pdf(invCdf(x));
@@ -181,6 +232,10 @@ double primaryFoo(double x) {
 //(customizable) Foo in primary space
 double primaryFoo2(double x) {
     return foo2(invCdf2(x)) / pdf2(invCdf2(x));
+}
+
+double primaryFooExp(double x) {
+    return fooExp(invCdfExp(x)) / pdfExp(invCdfExp(x));
 }
 
 int regionsBudget = 30000;
@@ -320,10 +375,11 @@ int main() {
     mt19937 gen(r());
     uniform_real_distribution<> dist1(0, 1);
     uniform_real_distribution<> dist2(1, 70);
+    uniform_real_distribution<> dist3(-1, 1);
 
     cout.precision(20);
     double temp [3];
-    getCoefs(0, 1, foo,temp);
+    getCoefs(0, 1, fooExp,temp);
     cout << temp[0] << ", " << temp[1] << ", " << temp[2] << endl;
     //cout << determinant(2, 3, 7, -5, 23, 10, 4, 5, -1);
     regionsBudget = 70;
@@ -335,8 +391,11 @@ int main() {
     fooCoefs[3] = dist2(gen);
     fooCoefs[5] = dist2(gen);
     fooCoefs[7] = dist2(gen);
-    double** myRegions = splitRegions(foo2);
-    cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
+    fooExpCoefs[0] = dist1(gen);
+    fooExpCoefs[1] = dist3(gen);
+    double** myRegions = splitRegions(fooExp);
+    cout << fooExpCoefs[0] << ", " << fooExpCoefs[1] << endl;
+    //cout << fooCoefs[0] << "," << fooCoefs[1] << "," << fooCoefs[2] << "," << fooCoefs[3] << "," << fooCoefs[4] << "," << fooCoefs[5] << "," << fooCoefs[6] << "," << fooCoefs[7] << endl;
     //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     for (int i = 0; i < regionsBudget; i++) {
         cout << "[";
@@ -358,7 +417,7 @@ int main() {
     //cout << fooCoefs[0] << "*sin(" << fooCoefs[1] << "*x) + " << fooCoefs[2] << "*sin(" << fooCoefs[3] << "*x) + " << fooCoefs[4] << "*cos(" << fooCoefs[5] << "*x) + " << fooCoefs[6] << "*cos(" << fooCoefs[7] << "*x) + " << endl;
     //cout << fooIntegralGroundTruth2() << endl;
 
-    int numRandomCoefs = 1000;
+    int numRandomCoefs = 10000;
     
     for (double j = 1.5; j < 7.5; j += 0.05) {
         if ((int) exp(j) == (int) exp(j-0.05)) {
@@ -381,7 +440,7 @@ int main() {
             fooCoefs[7] = dist2(gen);
             discontX = dist1(gen);
             
-            myRegions = splitRegionsEvenly(foo2);
+            myRegions = splitRegions(foo2);
            // RMSE += (polyApproxEst(myRegions)-fooIntegralGroundTruth2()) * (polyApproxEst(myRegions)-fooIntegralGroundTruth2());
             RMSE += pow(polyApproxEst(myRegions)-fooIntegralGroundTruth2(), 2);
             //RMSE += pow(residualMCEst(myRegions,foo2,2*regionsBudget+1,gen)-fooIntegralGroundTruth2(),2);
@@ -404,7 +463,33 @@ int main() {
     }
     cout << endl;
     //cout << polyApproxEst(myRegions) << endl;
-
+    /*int count = 0;
+    for (double j = 1.5; j < 7.5; j += 0.05) {
+        if ((int) exp(j) == (int) exp(j-0.05)) {
+            continue;
+        }
+        regionsBudget = (int) exp(j);
+        //Remove later:
+        regionsBudget /= 2;
+        double RMSE = 0;
+        for (int i = 0; i < numRandomCoefs; i++) {
+            fooExpCoefs[0] = dist1(gen);
+            fooExpCoefs[1] = dist3(gen);
+            //discontX = dist1(gen);
+            
+            myRegions = splitRegions(fooExp);
+            RMSE += pow(polyApproxEst(myRegions)-fooExpIntegralGroundTruth(), 2);
+        }
+        RMSE /= numRandomCoefs;
+        if (isnan(RMSE)) {
+            cout << endl <<  regionsBudget << endl;
+        }
+        RMSE = sqrt(RMSE);
+        cout << RMSE << ",";
+        count++;   
+    }
+    cout << endl;
+    cout << count << endl;*/
     delete myRegions;
     myRegions = nullptr;
 }
