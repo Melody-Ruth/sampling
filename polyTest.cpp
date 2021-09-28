@@ -774,11 +774,11 @@ double** splitRegions(function<double (double, double)> testFunc, int regionsBud
 
 double** splitRegionsEvenly(function<double (double, double)> testFunc, int regionsBudget, double lambda, double a, double b) {
     double** regions = new double*[regionsBudget];
-    double regionSize = 1.0 / regionsBudget;
+    double regionSize = (b-a) / regionsBudget;
     for (int i = 0; i < regionsBudget; i++) {
         regions[i] = new double[5];
-        regions[i][0] = i * regionSize;
-        regions[i][1] = (i + 1) * regionSize;
+        regions[i][0] = i * regionSize + a;
+        regions[i][1] = (i + 1) * regionSize + a;
         getCoefs(regions[i][0], regions[i][1], testFunc, &regions[i][2], lambda);
     }
     return regions;
@@ -807,6 +807,121 @@ double estimateIntegralPolyApprox(double a, double b, int N, double lambda, func
 double estimateIntegralAdapPolyApprox(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
+    double result = polyApproxEst(myRegions, regionsBudget);
+    delete myRegions;
+    return result;
+}
+
+double miniSimpsons2Lambdas(double intervalStart, double intervalEnd, function<double (double, double, double)> testFunc, double lambda1, double lambda2) {
+    return (testFunc(intervalStart, lambda1, lambda2) + 4 * testFunc((intervalStart + intervalEnd) / 2.0, lambda1, lambda2) + testFunc(intervalEnd, lambda1, lambda2)) * (intervalEnd - intervalStart) / 6.0;
+}
+
+double miniTrapezoidal2Lambdas(double intervalStart, double intervalEnd, function<double (double, double, double)> testFunc, double lambda1, double lambda2) {
+    return (intervalEnd - intervalStart) * (testFunc(intervalEnd, lambda1, lambda2) + testFunc(intervalStart, lambda1, lambda2)) / 2.0;
+}
+
+double estimateError2Lambdas(double intervalStart, double intervalEnd, function<double (double, double, double)> testFunc, double lambda1, double lambda2) {
+    return abs(miniSimpsons2Lambdas(intervalStart, intervalEnd, testFunc, lambda1, lambda2) - miniTrapezoidal2Lambdas(intervalStart, intervalEnd, testFunc, lambda1, lambda2)) + epsilon * (intervalEnd - intervalStart);
+}
+
+void getCoefs2Lambdas(double x1, double x3, function<double (double, double, double)> testFunc, double* coefs, double lambda1, double lambda2) {
+    //quadratic approximation
+    double x2 = (x1 + x3) / 2.0;
+    double y1 = testFunc(x1, lambda1, lambda2);
+    double y2 = testFunc(x2, lambda1, lambda2);
+    double y3 = testFunc(x3, lambda1, lambda2);
+
+    double D = determinant(x1*x1, x1, 1, x2*x2, x2, 1, x3*x3, x3, 1);
+    double Da = determinant(y1, x1, 1, y2, x2, 1, y3, x3, 1);
+    double Db = determinant(x1*x1, y1, 1, x2*x2, y2, 1, x3*x3, y3, 1);
+    double Dc = determinant(x1*x1, x1, y1, x2*x2, x2, y2, x3*x3, x3, y3);
+
+    double a;
+    double b;
+    double c;
+    if (D == 0) {
+        //Just do a constant line
+        a = 0;
+        b = 0;
+        c = y2;
+    } else {
+        a = Da / D;
+        b = Db / D;
+        c = Dc / D;
+    }
+
+    if (isinf(a)) {
+        cout << "What????" << endl;
+    }
+    coefs[0] = a;
+    coefs[1] = b;
+    coefs[2] = c;
+}
+
+double** splitRegions2Lambdas(function<double (double, double, double)> testFunc, int regionsBudget, double lambda1, double lambda2, double a, double b) {
+    double** regions = new double*[regionsBudget];
+    for (int i = 0; i < regionsBudget; i++) {
+        regions[i] = new double[5];
+    }
+    int numRegions = 1;
+    tuple<double, double, double> curr;
+    priority_queue<tuple<double, double, double>> myHeap;
+    //Each tuple has error estimate, startX, stopX
+    myHeap.push(tuple<double, double, double>(estimateError2Lambdas(a, b, testFunc, lambda1, lambda2),a,b));
+    double start, end, mid;
+    while (numRegions < regionsBudget) {
+        curr = myHeap.top();
+        start = get<1>(curr);
+        end = get<2>(curr);
+        mid = (start + end) / 2;
+        myHeap.pop();
+        myHeap.push(tuple<double, double, double>(estimateError2Lambdas(start, mid, testFunc, lambda1, lambda2), start, mid));
+        myHeap.push(tuple<double, double, double>(estimateError2Lambdas(mid, end, testFunc, lambda1, lambda2), mid, end));
+        numRegions++;
+    }
+    for (int i = 0; i < regionsBudget; i++) {
+        curr = myHeap.top();
+        regions[i][0] = get<1>(curr);
+        regions[i][1] = get<2>(curr);
+        myHeap.pop();
+        getCoefs2Lambdas(regions[i][0], regions[i][1], testFunc, &regions[i][2], lambda1, lambda2);
+    }
+    qsort(regions, regionsBudget, sizeof(regions[0]), compareArr);
+    return regions;
+}
+
+double** splitRegionsEvenly2Lambdas(function<double (double, double, double)> testFunc, int regionsBudget, double lambda1, double lambda2, double a, double b) {
+    double** regions = new double*[regionsBudget];
+    double regionSize = (b-a) / regionsBudget;
+    for (int i = 0; i < regionsBudget; i++) {
+        regions[i] = new double[5];
+        regions[i][0] = i * regionSize + a;
+        regions[i][1] = (i + 1) * regionSize + a;
+        getCoefs2Lambdas(regions[i][0], regions[i][1], testFunc, &regions[i][2], lambda1, lambda2);
+    }
+    return regions;
+}
+
+double estimateIntegralPolyApprox2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N-1)/2;
+    double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
+    /*for (int i = 0; i < regionsBudget; i++) {
+        cout << "[";
+        for (int j = 0; j < 4; j++) {
+            cout << myRegions[i][j] << ", ";
+        }
+        cout << myRegions[i][4];
+        cout << "]," << endl;
+    }*/
+    //cout << regionsBudget << endl;
+    double result = polyApproxEst(myRegions, regionsBudget);
+    delete myRegions;
+    return result;
+}
+
+double estimateIntegralAdapPolyApprox2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N-1)/2;
+    double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
     delete myRegions;
     return result;
@@ -1264,6 +1379,21 @@ void printRMSE2Lambdas1D(int numLambdas, int numSamples, int numTrials, function
         }
     }
     cout << "RMSE: " << sqrt(avgError/(numLambdas*numLambdas)) << endl << endl;
+    avgError = 0;
+    cout << "Polynomial Approximation (non adaptive):\n";
+    for (int i = 0; i < 1; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            for (double k = 0; k < numLambdas; k++) {
+                temp = estimateIntegralPolyApprox2Lambdas(intervalStart, intervalEnd, numSamples, j/numLambdas, k/numLambdas, testFunc, gen);
+                if ((temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) > 0.0002) {
+                    cout << j/numLambdas << ", " << k/numLambdas << endl;
+                    cout << (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) << endl;
+                }
+                avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+            }
+        }
+    }
+    cout << "RMSE: " << sqrt(avgError/(numLambdas*numLambdas)) << endl << endl;
 }
 
 /**
@@ -1708,6 +1838,8 @@ void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight
 void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials, function<double (double,double)> testFunc, function<double (double, double, double)> groundTruthFunc, mt19937 & gen, double intervalStart, double intervalEnd) {
     double avgError = 0;
     double temp = 0;
+    uniform_real_distribution<> dist(intervalStart, intervalEnd);
+    double lambda1;
     ofstream ofs("conv.txt", ios::out);
     //ofs << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
     for (int n = startN; n <= endN; n++) {
@@ -1716,8 +1848,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Monte Carlo
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genPureMonteCarlo1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genPureMonteCarlo1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
             //ofs << "trial done" << endl;
         }
@@ -1726,8 +1859,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Antithetic Monte Carlo
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genAntitheticMonteCarlo1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genAntitheticMonteCarlo1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
             //ofs << "trial done" << endl;
         }
@@ -1737,8 +1871,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Uniform
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genUniform1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genUniform1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         //cout << temp << endl;
@@ -1747,8 +1882,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Uniform Jitter
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genUniformJitter1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genUniformJitter1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1756,8 +1892,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Stratified
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratified1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genStratified1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1765,8 +1902,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Stratified (antithetic within strata)
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratifiedAntithetic1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genStratifiedAntithetic1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1774,8 +1912,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Stratified (antithetic globally)
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratifiedAntithetic1D2, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genStratifiedAntithetic1D2, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1783,8 +1922,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Stratified (antithetic globally and locally)
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genStratifiedAntithetic1D3, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genStratifiedAntithetic1D3, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1792,8 +1932,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Halton
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeq1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genHaltonSeq1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1801,8 +1942,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Halton (rotated)
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeqRot1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genHaltonSeqRot1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1810,8 +1952,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Halton (antithetic)
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegral1D(intervalStart, intervalEnd, n, j, testFunc, genHaltonSeqAntithetic1D, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegral1D(intervalStart, intervalEnd, n, lambda1, testFunc, genHaltonSeqAntithetic1D, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -1819,24 +1962,29 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
         //Simpson's Rule
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, j, testFunc, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         //Poly approx Rule
+        avgError = 0;
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegralSimpsons1D(intervalStart, intervalEnd, n, j, testFunc, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegralPolyApprox(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         //Poly approx Rule (adaptive)
+        avgError = 0;
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
-                temp = estimateIntegralAdapPolyApprox(intervalStart, intervalEnd, n, j, testFunc, gen);
-                avgError += (temp-groundTruthFunc(j, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j, intervalStart, intervalEnd));
+                lambda1 = dist(gen);
+                temp = estimateIntegralAdapPolyApprox(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << endl;
@@ -1847,7 +1995,9 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
 void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int numTrials, function<double (double,double,double)> testFunc, function<double (double, double, double, double)> groundTruthFunc, mt19937 & gen, double intervalStart, double intervalEnd) {
     double avgError = 0;
     double temp;
+    uniform_real_distribution<> dist(0,1);
     ofstream ofs("conv.txt", ios::out);
+    double lambda1, lambda2;
     //ofs << "Number of samples,Pure Monte Carlo,Uniform,Stratified,Halton\n";
     for (int n = startN; n <= endN; n++) {
         ofs << n << ",";
@@ -1856,8 +2006,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genPureMonteCarlo1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genPureMonteCarlo1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1867,8 +2019,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genAntitheticMonteCarlo1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genAntitheticMonteCarlo1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1878,8 +2032,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genUniform1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genUniform1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1889,8 +2045,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genUniformJitter1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genUniformJitter1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1900,8 +2058,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genStratified1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genStratified1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1911,8 +2071,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genStratifiedAntithetic1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genStratifiedAntithetic1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1922,8 +2084,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genStratifiedAntithetic1D2, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genStratifiedAntithetic1D2, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1933,8 +2097,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genStratifiedAntithetic1D3, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genStratifiedAntithetic1D3, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1944,8 +2110,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genHaltonSeq1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genHaltonSeq1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1955,8 +2123,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genHaltonSeqRot1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genHaltonSeqRot1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1966,8 +2136,10 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, genHaltonSeqAntithetic1D, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegral2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, genHaltonSeqAntithetic1D, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -1977,8 +2149,36 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
                 for (double k = 0; k < numLambdas; k++) {
-                    temp = estimateIntegralSimpsons2Lambdas1D(intervalStart, intervalEnd, n, j/numLambdas, k/numLambdas, testFunc, gen);
-                    avgError += (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd)) * (temp-groundTruthFunc(j/numLambdas, k/numLambdas, intervalStart, intervalEnd));
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegralSimpsons2Lambdas1D(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
+                }
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Polynomial Approximation
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                for (double k = 0; k < numLambdas; k++) {
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegralPolyApprox2Lambdas(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
+                }
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Polynomial Approximation (adaptive)
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                for (double k = 0; k < numLambdas; k++) {
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegralAdapPolyApprox2Lambdas(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
         }
@@ -2457,13 +2657,14 @@ int main(int argc, char** argv) {
     //printRMSE2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
     //printVariance2Lambdas1D(numLambdas,numSamples,numTrials,gaussianDerivativeWRTMeanTimesStep1D,gen,0,1);
     //cout << "So far so good????\n";
-    //printRMSE1D(1,10,1000000,tempFoo,tempFooGroundTruth,gen,0,1);
+    //printRMSE1D2Lambdas(1,10,1000000,tempFoo,tempFooGroundTruth,gen,0,1);
     //makePowerSpectra(numSamples,numTrials,imgWidth,imgHeight,60,genHaltonSeq2D,gen,"test2.ppm");
     //radicalInverse(3,7);
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
     //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
-    printConvergenceRates1D(6,40,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
+    //printConvergenceRates1D2Lambdas(6,35,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
+    printConvergenceRates1D(6,35,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
     //printConvergenceRatesLambdaImp2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
     //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
     

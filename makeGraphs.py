@@ -44,9 +44,9 @@ plt.plot(N, haan, linestyle='-', marker='.', label='Halton, antithetic, (approx 
 m, b = np.polyfit(logN, logSi, 1)
 plt.plot(N, si, linestyle='-', marker='.', label='Simpson\'s rule (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logPo, 1)
-plt.plot(N, po, linestyle='-', marker='.', label='(Adaptive) polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
+plt.plot(N, po, linestyle='-', marker='.', label='Polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logPoa, 1)
-plt.plot(N, poa, linestyle='-', marker='.', label='(Adaptive) polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
+plt.plot(N, poa, linestyle='-', marker='.', label='Adaptive polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
 plt.yscale('log')
 plt.xscale('log')
 
@@ -78,8 +78,8 @@ x = np.linspace(0.0, 3.0, 100)
 #    plt.show()
 plt.clf()
 
-x = np.linspace(-8.0, 8.0, 100)
-y = gaussianDerivativeWRTMeanTimesStep1D(x, 0, 0.9)
+x = np.linspace(0.0, 1.0, 100)
+y = gaussianDerivativeWRTMeanTimesStep1D(x, 0, 0.3)
 plt.plot(x, y)
 plt.show()
 
