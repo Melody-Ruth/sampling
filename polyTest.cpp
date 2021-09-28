@@ -796,6 +796,26 @@ double polyApproxEst(double** regions, double regionsBudget) {
     return estimate;
 }
 
+double polyApprox(double x, int regionsBudget, double** regions) {
+    int low = 0;
+    int high = regionsBudget;
+    int curr = (low + high) / 2;
+    while (regions[curr][0] > x || regions[curr][1] < x) {
+        if (regions[curr][0] > x) {
+            high = curr;
+            curr = (low + high) / 2;
+        } else if (regions[curr][1] < x) {
+            low = curr;
+            curr = (low + high) / 2;
+        }
+    }
+    return regions[curr][2] * x * x + regions[curr][3] * x + regions[curr][4];
+}
+
+double residual(double x, double lambda, int regionsBudget, double** regions, function<double (double,double)> testFunc) {
+    return testFunc(x,lambda) - polyApprox(x,regionsBudget,regions);
+}
+
 double estimateIntegralPolyApprox(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
@@ -804,12 +824,40 @@ double estimateIntegralPolyApprox(double a, double b, int N, double lambda, func
     return result;
 }
 
+double estimateIntegralPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N/2-1)/2;
+    double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
+    double est = 0;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < N/2; i++) {
+        est += residual(dist(gen),lambda,regionsBudget,myRegions,F);
+    }
+    est /= N/2;
+    est += polyApproxEst(myRegions,regionsBudget);
+    delete myRegions;
+    return est;
+}
+
 double estimateIntegralAdapPolyApprox(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
     delete myRegions;
     return result;
+}
+
+double estimateIntegralAdapPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N/2-1)/2;
+    double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
+    double est = 0;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < N/2; i++) {
+        est += residual(dist(gen),lambda,regionsBudget,myRegions,F);
+    }
+    est /= N/2;
+    est += polyApproxEst(myRegions,regionsBudget);
+    delete myRegions;
+    return est;
 }
 
 double miniSimpsons2Lambdas(double intervalStart, double intervalEnd, function<double (double, double, double)> testFunc, double lambda1, double lambda2) {
@@ -902,6 +950,10 @@ double** splitRegionsEvenly2Lambdas(function<double (double, double, double)> te
     return regions;
 }
 
+double residual2Lambdas(double x, double lambda1, double lambda2, int regionsBudget, double** regions, function<double (double,double,double)> testFunc) {
+    return testFunc(x,lambda1,lambda2) - polyApprox(x,regionsBudget,regions);
+}
+
 double estimateIntegralPolyApprox2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
@@ -919,12 +971,40 @@ double estimateIntegralPolyApprox2Lambdas(double a, double b, int N, double lamb
     return result;
 }
 
+double estimateIntegralPolyApproxControlVariate2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N/2-1)/2;
+    double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
+    double est = 0;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < N/2; i++) {
+        est += residual2Lambdas(dist(gen),lambda1,lambda2,regionsBudget,myRegions,F);
+    }
+    est /= N/2;
+    est += polyApproxEst(myRegions,regionsBudget);
+    delete myRegions;
+    return est;
+}
+
 double estimateIntegralAdapPolyApprox2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
     delete myRegions;
     return result;
+}
+
+double estimateIntegralAdapPolyApproxControlVariate2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
+    int regionsBudget = (N/2-1)/2;
+    double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
+    double est = 0;
+    uniform_real_distribution<> dist(0, 1);
+    for (int i = 0; i < N/2; i++) {
+        est += residual2Lambdas(dist(gen),lambda1,lambda2,regionsBudget,myRegions,F);
+    }
+    est /= N/2;
+    est += polyApproxEst(myRegions,regionsBudget);
+    delete myRegions;
+    return est;
 }
 
 //Poly Approx end
@@ -1978,12 +2058,32 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        //Poly approx Rule w/ control variate (50% of samples to each)
+        avgError = 0;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                lambda1 = dist(gen);
+                temp = estimateIntegralPolyApproxControlVariate(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         //Poly approx Rule (adaptive)
         avgError = 0;
         for (int i = 0; i < numTrials; i++) {
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
                 lambda1 = dist(gen);
                 temp = estimateIntegralAdapPolyApprox(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
+                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        //Poly approx Rule w/ control variate (adaptive)
+        avgError = 0;
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
+                lambda1 = dist(gen);
+                temp = estimateIntegralAdapPolyApproxControlVariate(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
                 avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
             }
         }
@@ -2171,6 +2271,19 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
         avgError = 0;
+        //Polynomial Approximation with control variate
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                for (double k = 0; k < numLambdas; k++) {
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegralPolyApproxControlVariate2Lambdas(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
+                }
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
         //Polynomial Approximation (adaptive)
         for (int i = 0; i < numTrials; i++) {
             for (double j = 0; j < numLambdas; j++) {
@@ -2178,6 +2291,19 @@ void printConvergenceRates1D2Lambdas(int startN, int endN, int numLambdas, int n
                     lambda1 = dist(gen);
                     lambda2 = dist(gen);
                     temp = estimateIntegralAdapPolyApprox2Lambdas(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
+                    avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
+                }
+            }
+        }
+        ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
+        avgError = 0;
+        //Polynomial Approximation (adaptive) with control variate
+        for (int i = 0; i < numTrials; i++) {
+            for (double j = 0; j < numLambdas; j++) {
+                for (double k = 0; k < numLambdas; k++) {
+                    lambda1 = dist(gen);
+                    lambda2 = dist(gen);
+                    temp = estimateIntegralAdapPolyApproxControlVariate2Lambdas(intervalStart, intervalEnd, n, lambda1, lambda2, testFunc, gen);
                     avgError += (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, lambda2, intervalStart, intervalEnd));
                 }
             }
@@ -2637,8 +2763,8 @@ int main(int argc, char** argv) {
     int imgWidth = 500;
     int imgHeight = 700;
     int numSamples = 50;
-    int numTrials = 5000;
-    int numLambdas = 100;
+    int numTrials = 500;
+    int numLambdas = 10;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
@@ -2663,8 +2789,8 @@ int main(int argc, char** argv) {
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
     //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
-    //printConvergenceRates1D2Lambdas(6,35,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
-    printConvergenceRates1D(6,35,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,0,1);
+    printConvergenceRates1D2Lambdas(6,200,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
+    //printConvergenceRates1D(6,35,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
     //printConvergenceRatesLambdaImp2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
     //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
     
