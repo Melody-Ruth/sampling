@@ -588,7 +588,7 @@ double estimateIntegral1D(double a, double b, int N, double lambda, function<dou
     }
     estimate /= N;
     estimate *= (b-a);
-    delete samplePoints;
+    delete [] samplePoints;
     return estimate;
 }
 
@@ -820,21 +820,30 @@ double estimateIntegralPolyApprox(double a, double b, int N, double lambda, func
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return result;
 }
 
 double estimateIntegralPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     int regionsBudget = (N/2-1)/2;
+    //int regionsBudget = (N-1)/2;
     double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
     double est = 0;
-    uniform_real_distribution<> dist(0, 1);
+    uniform_real_distribution<> dist(a, b);
     for (int i = 0; i < N/2; i++) {
         est += residual(dist(gen),lambda,regionsBudget,myRegions,F);
     }
     est /= N/2;
+    est *= (b-a);
+    //cout << est << " ";
     est += polyApproxEst(myRegions,regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return est;
 }
 
@@ -842,21 +851,29 @@ double estimateIntegralAdapPolyApprox(double a, double b, int N, double lambda, 
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return result;
 }
 
 double estimateIntegralAdapPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     int regionsBudget = (N/2-1)/2;
+    //int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
     double est = 0;
-    uniform_real_distribution<> dist(0, 1);
+    uniform_real_distribution<> dist(a, b);
     for (int i = 0; i < N/2; i++) {
         est += residual(dist(gen),lambda,regionsBudget,myRegions,F);
     }
     est /= N/2;
+    //cout << est << endl;
     est += polyApproxEst(myRegions,regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return est;
 }
 
@@ -878,6 +895,7 @@ void getCoefs2Lambdas(double x1, double x3, function<double (double, double, dou
     double y1 = testFunc(x1, lambda1, lambda2);
     double y2 = testFunc(x2, lambda1, lambda2);
     double y3 = testFunc(x3, lambda1, lambda2);
+    //cout << x2 << ", " << y2 << endl;
 
     double D = determinant(x1*x1, x1, 1, x2*x2, x2, 1, x3*x3, x3, 1);
     double Da = determinant(y1, x1, 1, y2, x2, 1, y3, x3, 1);
@@ -967,7 +985,10 @@ double estimateIntegralPolyApprox2Lambdas(double a, double b, int N, double lamb
     }*/
     //cout << regionsBudget << endl;
     double result = polyApproxEst(myRegions, regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return result;
 }
 
@@ -975,13 +996,16 @@ double estimateIntegralPolyApproxControlVariate2Lambdas(double a, double b, int 
     int regionsBudget = (N/2-1)/2;
     double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
-    uniform_real_distribution<> dist(0, 1);
+    uniform_real_distribution<> dist(a, b);
     for (int i = 0; i < N/2; i++) {
         est += residual2Lambdas(dist(gen),lambda1,lambda2,regionsBudget,myRegions,F);
     }
     est /= N/2;
     est += polyApproxEst(myRegions,regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return est;
 }
 
@@ -989,7 +1013,10 @@ double estimateIntegralAdapPolyApprox2Lambdas(double a, double b, int N, double 
     int regionsBudget = (N-1)/2;
     double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double result = polyApproxEst(myRegions, regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return result;
 }
 
@@ -997,13 +1024,16 @@ double estimateIntegralAdapPolyApproxControlVariate2Lambdas(double a, double b, 
     int regionsBudget = (N/2-1)/2;
     double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
-    uniform_real_distribution<> dist(0, 1);
+    uniform_real_distribution<> dist(a, b);
     for (int i = 0; i < N/2; i++) {
         est += residual2Lambdas(dist(gen),lambda1,lambda2,regionsBudget,myRegions,F);
     }
     est /= N/2;
     est += polyApproxEst(myRegions,regionsBudget);
-    delete myRegions;
+    for (int i = 0; i < regionsBudget; i++) {
+    	delete[] myRegions[i];
+    }
+    delete[] myRegions;
     return est;
 }
 
@@ -1019,7 +1049,7 @@ double estimateIntegral2Lambdas1D(double a, double b, int N, double lambda1, dou
     }
     estimate /= N;
     estimate *= (b-a);
-    delete samplePoints;
+    delete[] samplePoints;
     return estimate;
 }
 
@@ -1034,9 +1064,9 @@ double estimateIntegral2D(double a, double b, double c, double d, int N, functio
     estimate /= N;
     estimate *= (b-a);
     for (int i = 0; i < N; i++) {
-        delete samplePoints[i];
+        delete[] samplePoints[i];
     }
-    delete samplePoints;
+    delete[] samplePoints;
     return estimate;
 }
 
@@ -1051,9 +1081,9 @@ double estimateIntegralLambda2D(double a, double b, double c, double d, int N, d
     estimate /= N;
     estimate *= (b-a);
     for (int i = 0; i < N; i++) {
-        delete samplePoints[i];
+        delete[] samplePoints[i];
     }
-    delete samplePoints;
+    delete[] samplePoints;
     return estimate;
 }
 
@@ -1090,9 +1120,9 @@ double estimateIntegralLambdaImp2D(double a, double b, double c, double d, int N
     }
     estimate *= (b-a);
     for (int i = 0; i < N; i++) {
-        delete samplePoints[i];
+        delete[] samplePoints[i];
     }
-    delete samplePoints;
+    delete[] samplePoints;
     return estimate;
 }
 
@@ -1144,9 +1174,9 @@ double** fourierCoefs2D(double a, double b, double c, double d, int N, int numTr
             }
         }
         for (int i = 0; i < N; i++) {
-            delete samples[i];
+            delete[] samples[i];
         }
-        delete samples;
+        delete[] samples;
     }
     return spectra;
 }
@@ -1902,9 +1932,9 @@ void makePowerSpectra(int numSamples, int numTrials, int imgWidth, int imgHeight
         }
     }
     for (int i = 0; i < maxW * 2 + 1; i++) {
-        delete testSpectra[i];
+        delete[] testSpectra[i];
     }
-    delete testSpectra;
+    delete[] testSpectra;
 
     //Make image file
     ofstream ofs(fileName, ios::out | ios::binary);
@@ -2064,7 +2094,8 @@ void printConvergenceRates1D(int startN, int endN, int numLambdas, int numTrials
             for (double j = intervalStart; j < intervalEnd; j += (intervalEnd - intervalStart)/numLambdas) {
                 lambda1 = dist(gen);
                 temp = estimateIntegralPolyApproxControlVariate(intervalStart, intervalEnd, n, lambda1, testFunc, gen);
-                avgError += (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd)) * (temp-groundTruthFunc(lambda1, intervalStart, intervalEnd));
+                avgError += pow(temp-groundTruthFunc(lambda1, intervalStart, intervalEnd),2);
+                //cout << groundTruthFunc(lambda1, intervalStart, intervalEnd)-estimateIntegralPolyApprox(intervalStart, intervalEnd, n, lambda1, testFunc, gen) << endl;
             }
         }
         ofs << sqrt(avgError/(numTrials * numLambdas)) << ",";
@@ -2691,7 +2722,7 @@ void printPoints1D(int N, function<double* (int, double, double, mt19937 &)> sam
     for (int i = 0; i < N; i++) {
         ofs << points[i] << ",1" << endl;
     }
-    delete points;
+    delete[] points;
 }
 
 
@@ -2702,7 +2733,7 @@ void printPoints2D(int N, function<double** (int, double, double, double, double
     for (int i = 0; i < N; i++) {
         ofs << points[i][0] << "," << points[i][1] << endl;
     }
-    delete points;
+    delete[] points;
 }
 
 double foo(double x, double lambda) {
@@ -2789,9 +2820,21 @@ int main(int argc, char** argv) {
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
     //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
-    printConvergenceRates1D2Lambdas(6,200,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-8,8);
+    printConvergenceRates1D2Lambdas(6,200,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-6,6);
     //printConvergenceRates1D(6,35,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
     //printConvergenceRatesLambdaImp2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
     //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
-    
+    double** myRegions = splitRegionsEvenly(gaussianDerivativeWRTMean1D, 5, 0.799, -6, 6);
+    for (int i = 0; i < 5; i++) {
+        cout << "[";
+        for (int j = 0; j < 4; j++) {
+            cout << myRegions[i][j] << ", ";
+        }
+        cout << myRegions[i][4];
+        cout << "]," << endl;
+    }
+    temp = estimateIntegralPolyApproxControlVariate(-6, 6, 5, 0.799, gaussianDerivativeWRTMean1D, gen);
+    avgError = (temp-groundTruthGaussianDerivativeWRTMean1D(0.799, -6, 6)) * (temp-groundTruthGaussianDerivativeWRTMean1D(0.799, -6, 6));
+    cout << groundTruthGaussianDerivativeWRTMean1D(0.799, -6, 6)-estimateIntegralPolyApprox(-6, 6, 5, 0.799, gaussianDerivativeWRTMean1D, gen) << endl;
+
 }

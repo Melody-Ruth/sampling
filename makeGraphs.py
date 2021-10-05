@@ -85,7 +85,7 @@ x = np.linspace(0.0, 3.0, 100)
 plt.clf()
 
 x = np.linspace(-6, 6, 100)
-y = gaussianDerivativeWRTMean1D(x, 0.9)
+y = gaussianDerivativeWRTMeanTimesStep1D(x, 0.799, 0.212)
 plt.plot(x, y)
 plt.show()
 
