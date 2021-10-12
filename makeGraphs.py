@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+#N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, pocv, poa, poacv, fp = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, pocv, poa, poacv = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
@@ -20,11 +21,12 @@ logPo = np.log(po, out=np.zeros_like(po), where=(po!=0))
 logPocv = np.log(pocv, out=np.zeros_like(pocv), where=(pocv!=0))
 logPoa = np.log(poa, out=np.zeros_like(poa), where=(poa!=0))
 logPoacv = np.log(poacv, out=np.zeros_like(poacv), where=(poacv!=0))
+#logFp = np.log(fp, out=np.zeros_like(fp), where=(fp!=0))
 
 m, b = np.polyfit(logN, logMc, 1)
 plt.plot(N, mc, color='C1', linestyle='-', marker='.', label='Pure Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logAn, 1)
-#plt.plot(N, an, color='C1', linestyle='-', marker='.', label='Antithetic Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
+plt.plot(N, an, color='C7', linestyle='-', marker='.', label='Antithetic Monte Carlo (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logUn, 1)
 plt.plot(N, un, color='C2', linestyle='-', marker='.', label='Uniform (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logUnji, 1)
@@ -53,6 +55,8 @@ m, b = np.polyfit(logN, logPoa, 1)
 plt.plot(N, poa, color='C0', linestyle='-', marker='.', label='Adaptive polynomial approximation (approx rate: '+"{:.4f}".format(m)+')')
 m, b = np.polyfit(logN, logPoacv, 1)
 plt.plot(N, poacv, color='lime', linestyle='-', marker='.', label='Adaptive polynomial approximation with control variate (approx rate: '+"{:.4f}".format(m)+')')
+#m, b = np.polyfit(logN, logFp, 1)
+#plt.plot(N, fp, color='C6', linestyle='-', marker='.', label='4 point rule (approx rate: '+"{:.4f}".format(m)+')')
 plt.yscale('log')
 plt.xscale('log')
 
@@ -85,7 +89,8 @@ x = np.linspace(0.0, 3.0, 100)
 plt.clf()
 
 x = np.linspace(-6, 6, 100)
-y = gaussianDerivativeWRTMeanTimesStep1D(x, 0.799, 0.212)
+#y = gaussianDerivativeWRTMeanTimesStep1D(x, 0.799, 0.212)
+y = gaussianDerivativeWRTMean1D(x, 0)
 plt.plot(x, y)
 plt.show()
 
