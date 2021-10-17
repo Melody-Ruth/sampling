@@ -88,6 +88,28 @@ double groundTruthGaussianDerivativeWRTMeanTimesStep1D(double gausMean, double h
     return -(exp(-0.5 * (intervalEnd - gausMean) * (intervalEnd - gausMean)) - exp(-0.5 * (intervalStart - gausMean) * (intervalStart - gausMean)))/sqrt(2 * M_PI);
 }
 
+double trig1D(double x, double lambda) {
+    return sin(x) + cos(lambda * x);
+}
+
+double groundTruthTrig1D(double lambda, double intervalStart, double intervalEnd) {
+    return -cos(intervalEnd) + sin(lambda * intervalEnd)/lambda + cos(intervalStart) - sin(lambda * intervalStart)/lambda;
+}
+
+double trigTimesStep1D(double x, double lambda1, double lambda2) {
+    return heaviside(x, lambda2) * (sin(x) + cos(lambda1 * x));
+}
+
+double groundTruthTrigTimesStep1D(double lambda1, double lambda2, double intervalStart, double intervalEnd) {
+    if (lambda2 > intervalEnd) {
+        return 0;
+    }
+    if (lambda2 > intervalStart) {
+        intervalStart = lambda2;
+    }
+    return -cos(intervalEnd) + sin(lambda1 * intervalEnd)/lambda1 + cos(intervalStart) - sin(lambda1 * intervalStart)/lambda1;
+}
+
 double disk(double x, double y) {
     return (double) (x*x + y*y < 2/M_PI);
 }
@@ -836,7 +858,8 @@ double estimateIntegralPolyApprox(double a, double b, int N, double lambda, func
 //stratified
 double estimateIntegralPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -876,7 +899,8 @@ double estimateIntegralPolyApproxControlVariate(double a, double b, int N, doubl
 //antithetic
 double estimateIntegralPolyApproxControlVariateAntithetic(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegionsEvenly(F, regionsBudget, lambda, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -927,7 +951,7 @@ double estimateIntegralAdapPolyApprox(double a, double b, int N, double lambda, 
 //stratified
 double estimateIntegralAdapPolyApproxControlVariate(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -963,7 +987,8 @@ double estimateIntegralAdapPolyApproxControlVariate(double a, double b, int N, d
 //antithetic
 double estimateIntegralAdapPolyApproxControlVariateAntithetic(double a, double b, int N, double lambda, function<double (double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegions(F, regionsBudget, lambda, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -1112,7 +1137,8 @@ double estimateIntegralPolyApprox2Lambdas(double a, double b, int N, double lamb
 
 double estimateIntegralPolyApproxControlVariate2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -1157,7 +1183,8 @@ double estimateIntegralPolyApproxControlVariate2Lambdas(double a, double b, int 
 
 double estimateIntegralPolyApproxControlVariate2LambdasAntithetic(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegionsEvenly2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -1192,7 +1219,8 @@ double estimateIntegralAdapPolyApprox2Lambdas(double a, double b, int N, double 
 //stratified
 double estimateIntegralAdapPolyApproxControlVariate2Lambdas(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -1231,7 +1259,8 @@ double estimateIntegralAdapPolyApproxControlVariate2Lambdas(double a, double b, 
 
 double estimateIntegralAdapPolyApproxControlVariate2LambdasAntithetic(double a, double b, int N, double lambda1, double lambda2, function<double (double, double, double)> F, mt19937 & gen) {
     //int regionsBudget = (N/2-1)/2;
-    int regionsBudget = (N-1)/2;
+    //int regionsBudget = (N-1)/2;
+    int regionsBudget = (N-1)/4;
     double** myRegions = splitRegions2Lambdas(F, regionsBudget, lambda1, lambda2, a, b);
     double est = 0;
     uniform_real_distribution<> dist(a, b);
@@ -3122,7 +3151,7 @@ int main(int argc, char** argv) {
     int imgHeight = 700;
     int numSamples = 50;
     int numTrials = 500;
-    int numLambdas = 12;
+    int numLambdas = 6;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
