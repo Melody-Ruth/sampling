@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 #N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, pocv, poa, poacv, fp = np.loadtxt('conv.txt', delimiter=',', unpack=True)
-N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, pocv, pocvan, poa, poacv, poacvan = np.loadtxt('conv.txt', delimiter=',', unpack=True)
+N, mc, an, un, unji, st, stan, stan2, stan3, ha, haro, haan, si, po, pocv, pocvan, poa, poacv, poacvan, fp = np.loadtxt('conv.txt', delimiter=',', unpack=True)
 
 logN = np.log(N, out=np.zeros_like(N), where=(N!=0))
 logMc = np.log(mc, out=np.zeros_like(mc), where=(mc!=0))
@@ -86,6 +87,9 @@ def gaussianDerivativeWRTMean1D(x, myLambda):
 def gaussianDerivativeWRTMeanTimesStep1D(x, gausMean, heavLambda):
     return sampleStep(x, heavLambda) * gaussianDerivativeWRTMean1D(x, gausMean)
 
+def trig(x, lambda1):
+    return math.sin(x) + math.cos(lambda1*x)
+
 x = np.linspace(0.0, 3.0, 100)
 #for i in range(0, 30):
 #    y = gaussianDerivativeWRTMean1D(x, i/10)
@@ -96,7 +100,11 @@ plt.clf()
 
 x = np.linspace(-6, 6, 100)
 #y = gaussianDerivativeWRTMeanTimesStep1D(x, 0.799, 0.212)
-y = gaussianDerivativeWRTMean1D(x, 0)
+#y = gaussianDerivativeWRTMean1D(x, 0)
+#y = trig(x,)
+y = [0] * 100
+for i in range(100):
+    y[i] = trig(x[i],0.3)
 plt.plot(x, y)
 plt.show()
 

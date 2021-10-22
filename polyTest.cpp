@@ -1488,7 +1488,7 @@ double** fourierCoefs2D(double a, double b, double c, double d, int N, int numTr
  * A strip will be generated for ground truth, pure Monte Carlo (uniformly random sampling), uniform (sample points at the center of each strata),
  * and stratified/jittered (sample points at a random location within each strata)
  */
-void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgWidth, int imgHeight, function<double (double,double)> testFunc, function<double (double)> groundTruthFunc, mt19937 & gen, string fileName) {
+void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgWidth, int imgHeight, function<double (double,double)> testFunc, function<double (double,double,double)> groundTruthFunc, mt19937 & gen, string fileName, double a, double b) {
     double* samples;
     unsigned char image[imgHeight*imgWidth];
     for (int i = 0; i < imgHeight*imgWidth; i++) {
@@ -1498,7 +1498,8 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
     double minVal = 10000000000;
     double maxVal = -10000000000;
     for (double j = 0; j < numLambdas; j++) {
-        temp = groundTruthFunc(j/numLambdas);
+        temp = groundTruthFunc(j/numLambdas,a,b);
+        //cout << temp << endl;
         if (temp < minVal) {
             minVal = temp;
         }
@@ -1506,14 +1507,17 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
             maxVal = temp;
         }
     }
+    cout << minVal << endl;
+    cout << maxVal << endl;
     //Ground Truth
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
-            image[(unsigned int) (i*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (groundTruthFunc(j/numLambdas) - minVal)));
-            //cout << groundTruthFunc(j/numLambdas) << endl;
+            image[(unsigned int) (i*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (groundTruthFunc(j/numLambdas,a,b) - minVal)));
+            //cout << groundTruthFunc(j/numLambdas,a,b) << endl;
         }
     }
     cout << "ground truth done" << endl;
+    /*
     //Monte Carlo
     for (int i = 0; i < numTrials; i++) {
         for (double j = 0; j < numLambdas; j++) {
@@ -1549,11 +1553,53 @@ void makeIntensityStrips(int numLambdas, int numSamples, int numTrials, int imgW
             temp = estimateIntegral1D(0, 1, numSamples, j/numLambdas, testFunc, genAntitheticMonteCarlo1D, gen);
             image[(unsigned int) ((i + 550)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
         }
+    }*/
+    //Adaptive polynomial approximation w/ out control variate
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            //cout << "i: " << i << ", j: " << j << endl;
+            temp = estimateIntegralAdapPolyApprox(a,b,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + numTrials + 10)*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+        }
+    }
+    cout << "pure monte done" << endl;
+    //Uniform
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            
+            temp = estimateIntegral1D(a, b, numSamples, j/numLambdas, testFunc, genUniform1D, gen);
+            //cout << j/numLambdas << ", " << temp << endl;
+            //cout << groundTruthFunc(j/numLambdas,a,b) << ", " << temp << endl;
+            image[(unsigned int) ((i + 2 * (numTrials + 10))*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+        }
+    }
+    //Polynomial approximation w/ no conrol variate
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegralPolyApprox(a,b,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + 3 * (numTrials + 10))*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+        }
+    }
+    //Polynomial approximation w/ stratified control variate
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegralPolyApproxControlVariate(a,b,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + 4 * (numTrials + 10))*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+            //cout << (groundTruthFunc(j/numLambdas,a,b)-minVal) << endl;
+        }
+    }
+    //Polynomial approximation w/ antithetic control variate
+    for (int i = 0; i < numTrials; i++) {
+        for (double j = 0; j < numLambdas; j++) {
+            temp = estimateIntegralPolyApproxControlVariateAntithetic(a,b,numSamples,j/numLambdas,testFunc,gen);
+            image[(unsigned int) ((i + 5 * (numTrials + 10))*imgWidth + j + 20)] = (unsigned char) max(0.0, min(255.0, 30 + (180 / (maxVal - minVal)) * (temp - minVal)));
+        }
     }
     //Make image file
     ofstream ofs(fileName, ios::out | ios::binary);
     ofs << "P6\n" << imgWidth << " " << imgHeight << "\n255\n"; 
     for (int i = 0; i < imgWidth * imgHeight; ++i) { 
+        //cout << "Hello\n";
         ofs << image[i] << image[i] << image[i];
     } 
     ofs.close();
@@ -3141,6 +3187,17 @@ void importanceSamplingDemo(mt19937 & gen) {
     cout << avgError << endl;
 }
 
+gaussianDerivativeWRTMean1DWeird(double x, double lambda) {
+    return lambda * gaussianDerivativeWRTMean1D(x,lambda) + 5.0 * lambda;
+}
+
+groundTruthGaussianDerivativeWRTMean1DWeird(double lambda, double intervalStart, double intervalEnd) {
+    //cout << groundTruthGaussianDerivativeWRTMean1D(lambda,intervalStart,intervalEnd) << endl;
+    //cout << "lambda: " << lambda << endl;
+    //cout << lambda << ", " << (5.0 * lambda) << ", " << lambda * (intervalEnd-intervalStart) << endl;
+    return 5.0 * lambda * (intervalEnd-intervalStart);
+}
+
 int main(int argc, char** argv) {
     cout.precision(12);
     string fileName = argv[1];
@@ -3149,9 +3206,9 @@ int main(int argc, char** argv) {
     //cout << "Hmmm\n";
     int imgWidth = 500;
     int imgHeight = 700;
-    int numSamples = 50;
-    int numTrials = 500;
-    int numLambdas = 6;
+    int numSamples = 100;
+    int numTrials = 70;
+    int numLambdas = 200;
     double avgError = 0;
     double avgError2 = 0;
     double temp;
@@ -3168,8 +3225,9 @@ int main(int argc, char** argv) {
     //printPoints1D(numSamples, genUniformJitter1D,gen);
     //cout << groundTruthGaussianDerivativeWRTMean1D(0,0,1) << endl;
     //cout << gaussianDerivativeWRTMean1D(0,1) << endl;
-    //printConvergenceRates1D(6,500,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
-    printConvergenceRates1D2Lambdas(6,300,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-6,6);
+    //printConvergenceRates1D(6,1000,numLambdas,numTrials,gaussianDerivativeWRTMean1D,groundTruthGaussianDerivativeWRTMean1D,gen,-6,6);
+    makeIntensityStrips(numLambdas,numSamples,numTrials,500,500,gaussianDerivativeWRTMean1DWeird,groundTruthGaussianDerivativeWRTMean1DWeird,gen,fileName,-6,6);
+    //printConvergenceRates1D2Lambdas(6,300,numLambdas,numTrials,gaussianDerivativeWRTMeanTimesStep1D,groundTruthGaussianDerivativeWRTMeanTimesStep1D,gen,-6,6);
     //printConvergenceRatesLambdaImp2D(0,1,0,1,2,40,numLambdas,numTrials,gausWRTMeanImp2D,gausWRTMeanImp2DGroundTruth,gen);
     //printPoints2D(50,genAntitheticMonteCarlo2D,gen);
     /*double** myRegions = splitRegionsEvenly(gaussianDerivativeWRTMean1D, 10, 0.799, -6, 6);
